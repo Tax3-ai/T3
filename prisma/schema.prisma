@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model BrandBible {
+  id             String   @id @default(cuid())
+  brandName      String
+  tagline        String
+  originStory    String
+  mission        String
+  vision         String
+  personality    String   // JSON array of 3 words
+  audience       String   // JSON object
+  voice          String   // JSON object
+  visual         String   // JSON object
+  contentPillars String   // JSON array
+  competitors    String   // JSON array
+  redLines       String   // JSON array
+  offLimitPhrases String  // JSON array
+  lovedPhrases   String   // JSON array
+  slogans        String   // JSON array
+  inspirationAccounts String // JSON array
+  avoidAccounts  String   // JSON array
+  topics         String   // JSON array
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model Post {
+  id              String         @id @default(cuid())
+  platform        String         // INSTAGRAM | TIKTOK
+  status          String         // DRAFT | PENDING_APPROVAL | APPROVED | SCHEDULED | PUBLISHED | FAILED
+  contentType     String         // REEL | STORY | CAROUSEL | VIDEO
+  caption         String
+  hashtags        String         // JSON array
+  audioTrack      String?
+  hook            String?
+  pillar          String         // lifestyle | behind_scenes | campaign | community | events
+  thumbnailUrl    String?
+  videoUrl        String?
+  mediaUrls       String?        // JSON array for carousels
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  platformPostId  String?
+  approvalStatus  String         // PENDING | APPROVED | REJECTED | AUTO_APPROVED
+  approvalNotes   String?
+  aiReasoning     String?
+  predictedScore  Float?
+  flaggedForReview Boolean       @default(false)
+  metrics         PostMetrics[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model PostMetrics {
+  id              String   @id @default(cuid())
+  postId          String
+  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  checkpointHours Int      // 1, 6, 24, 72, 168
+  views           Int      @default(0)
+  likes           Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  saves           Int      @default(0)
+  completionRate  Float?
+  followerGrowth  Int?
+  engagementRate  Float?
+  recordedAt      DateTime @default(now())
+
+  @@unique([postId, checkpointHours])
+}
+
+model TrendingItem {
+  id              String   @id @default(cuid())
+  platform        String   // INSTAGRAM | TIKTOK
+  itemType        String   // AUDIO | HASHTAG | FORMAT | HOOK
+  value           String
+  category        String?
+  saturation      Float    @default(0.5) // 0=fresh 1=saturated
+  growthRate      Float    @default(0)
+  usageCount      Int      @default(0)
+  niches          String   // JSON array
+  exampleUrls     String   // JSON array
+  isActive        Boolean  @default(true)
+  recordedAt      DateTime @default(now())
+  expiresAt       DateTime
+}
+
+model CompetitorPost {
+  id              String   @id @default(cuid())
+  account         String
+  platform        String
+  url             String   @unique
+  hook            String?
+  caption         String?
+  audioUsed       String?
+  views           Int?
+  likes           Int?
+  shares          Int?
+  saves           Int?
+  comments        Int?
+  lengthSeconds   Int?
+  format          String?
+  textOverlays    String?
+  cta             String?
+  aspectRatio     String?
+  pillars         String   // JSON array of matched brand pillars
+  notes           String?
+  recordedAt      DateTime @default(now())
+}
+
+model PatternEntry {
+  id              String   @id @default(cuid())
+  pattern         String
+  category        String   // hook | audio | format | timing | hashtag | length | style
+  avgViews        Float    @default(0)
+  avgLikes        Float    @default(0)
+  avgEngagement   Float    @default(0)
+  sampleSize      Int      @default(0)
+  score           Float    @default(0) // composite performance score
+  notes           String?
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
+model StrategyReport {
+  id              String   @id @default(cuid())
+  weekStarting    DateTime
+  totalPosts      Int
+  avgViews        Float    @default(0)
+  avgEngagement   Float    @default(0)
+  topPosts        String   // JSON array of post IDs
+  wins            String
+  losses          String
+  insights        String
+  nextWeekPlan    String
+  recommendations String   // JSON array
+  createdAt       DateTime @default(now())
+}
+
+model ContentSuggestion {
+  id              String   @id @default(cuid())
+  platform        String
+  pillar          String
+  hook            String
+  captionDraft    String
+  hashtags        String   // JSON array
+  audioSuggestion String?
+  visualNotes     String
+  reasoning       String
+  predictedScore  Float?
+  status          String   @default("PENDING") // PENDING | ACCEPTED | DISMISSED
+  createdAt       DateTime @default(now())
+}
