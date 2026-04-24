@@ -1,0 +1,83 @@
+name: Social Media Agent
+
+on:
+  schedule:
+    # Morning post – 09:00 GMT
+    - cron: "0 9 * * *"
+    # Midday post – 13:00 GMT
+    - cron: "0 13 * * *"
+    # Evening post – 18:00 GMT
+    - cron: "0 18 * * *"
+    # Metrics collection – every hour
+    - cron: "0 * * * *"
+    # Weekly strategy report – Monday 08:00 GMT
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which job to run manually"
+        required: true
+        default: "morning"
+        type: choice
+        options:
+          - morning
+          - midday
+          - evening
+          - metrics
+          - report
+
+jobs:
+  morning-post:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'morning' || github.event_name == 'schedule' && github.event.schedule == '0 9 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger morning post
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/daily?slot=morning" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120
+
+  midday-post:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'midday' || github.event_name == 'schedule' && github.event.schedule == '0 13 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger midday post
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/daily?slot=midday" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120
+
+  evening-post:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'evening' || github.event_name == 'schedule' && github.event.schedule == '0 18 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger evening post
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/daily?slot=evening" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120
+
+  collect-metrics:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'metrics' || github.event_name == 'schedule' && github.event.schedule == '0 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect post metrics
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/metrics" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60
+
+  weekly-report:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'report' || github.event_name == 'schedule' && github.event.schedule == '0 8 * * 1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate weekly strategy report
+        run: |
+          curl -sf -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/report" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120
