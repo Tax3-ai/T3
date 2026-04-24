@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const metrics = await prisma.postMetrics.findMany({
-    where: { postId: params.id },
+    where: { postId: id },
     orderBy: { checkpointHours: "asc" },
   });
 
@@ -15,19 +16,20 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const body = await request.json();
 
   const metric = await prisma.postMetrics.upsert({
     where: {
       postId_checkpointHours: {
-        postId: params.id,
+        postId: id,
         checkpointHours: body.checkpointHours,
       },
     },
     create: {
-      postId: params.id,
+      postId: id,
       checkpointHours: body.checkpointHours,
       views: body.views ?? 0,
       likes: body.likes ?? 0,

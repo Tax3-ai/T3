@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const post = await prisma.post.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { metrics: { orderBy: { checkpointHours: "asc" } } },
   });
 
@@ -21,8 +22,9 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const body = await request.json();
 
   const updateData: Record<string, unknown> = {};
@@ -45,7 +47,7 @@ export async function PATCH(
   }
 
   const post = await prisma.post.update({
-    where: { id: params.id },
+    where: { id },
     data: updateData,
   });
 
@@ -57,8 +59,9 @@ export async function PATCH(
 
 export async function DELETE(
   _: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await prisma.post.delete({ where: { id: params.id } });
+  const { id } = await params;
+  await prisma.post.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
