@@ -71,9 +71,10 @@ export default function DashboardPage() {
   async function generateBatch() {
     setIsGenerating(true);
     try {
-      await fetch("/api/cron/daily?slot=morning", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? "dev-cron-secret"}` },
+      await fetch("/api/generate/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot: "morning" }),
       });
       await load();
     } finally {

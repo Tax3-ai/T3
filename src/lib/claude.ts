@@ -101,7 +101,26 @@ Rules:
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const data = JSON.parse(text);
+
+  // Strip markdown code fences if the model wrapped the JSON
+  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(cleaned);
+  } catch {
+    // Retry once with an explicit correction prompt
+    const retryResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: "You are a JSON repair assistant. Return only valid JSON — no markdown, no explanation.",
+      messages: [
+        { role: "user", content: `Fix this invalid JSON and return only the corrected JSON:\n\n${text}` },
+      ],
+    });
+    const retryText = retryResponse.content[0].type === "text" ? retryResponse.content[0].text : "{}";
+    data = JSON.parse(retryText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim());
+  }
 
   const scheduledAt = new Date();
   const [hours, minutes] = POSTING_TIMES[req.slot][req.platform].split(":").map(Number);
