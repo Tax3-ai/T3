@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getDashboardStats } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
@@ -24,15 +25,19 @@ export async function GET() {
     return bV - aV;
   })[0] ?? null;
 
+  const parsePost = (p: typeof recentPosts[0]) => ({
+    ...p,
+    hashtags: JSON.parse(p.hashtags ?? "[]"),
+    mediaUrls: p.mediaUrls ? JSON.parse(p.mediaUrls) : null,
+  });
+
   return NextResponse.json({
-    stats: { ...stats, topPerformer },
-    recentPosts: recentPosts.map((p) => ({
-      ...p,
-      hashtags: JSON.parse(p.hashtags ?? "[]"),
-    })),
+    stats: { ...stats, topPerformer: topPerformer ? parsePost(topPerformer) : null },
+    recentPosts: recentPosts.map(parsePost),
     pendingApproval: pendingPosts.map((p) => ({
       ...p,
       hashtags: JSON.parse(p.hashtags ?? "[]"),
+      mediaUrls: p.mediaUrls ? JSON.parse(p.mediaUrls) : null,
     })),
   });
 }

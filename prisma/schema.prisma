@@ -2,12 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// For local dev: provider = "sqlite"
-// For production (Vercel/Neon): change to "postgresql"
-// Run `npm run db:use-postgres` before deploying to switch automatically
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model BrandBible {

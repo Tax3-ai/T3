@@ -68,6 +68,20 @@ export default function DashboardPage() {
     load();
   }, [load]);
 
+  async function importFromInstagram() {
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/import/instagram", { method: "POST" });
+      const data = await res.json();
+      alert(`Import complete! ${data.imported} posts imported, ${data.skipped} already existed.`);
+      await load();
+    } catch {
+      alert("Import failed — check console for details.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   async function generateBatch() {
     setIsGenerating(true);
     try {
@@ -132,6 +146,14 @@ export default function DashboardPage() {
             onClick={load}
           >
             Refresh
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={importFromInstagram}
+            loading={isGenerating}
+          >
+            ↓ Import from Instagram
           </Button>
           <Button
             variant="primary"

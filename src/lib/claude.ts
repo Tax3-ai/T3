@@ -129,20 +129,31 @@ Rules:
     scheduledAt.setDate(scheduledAt.getDate() + 1);
   }
 
+  const d = data as {
+    contentType?: string;
+    caption: string;
+    hashtags: string[];
+    audioSuggestion?: string | null;
+    hook: string;
+    reasoning: string;
+    predictedScore?: number | null;
+    flaggedForReview?: boolean;
+  };
+
   const post = await prisma.post.create({
     data: {
       platform: req.platform,
       status: "PENDING_APPROVAL",
-      contentType: data.contentType ?? "REEL",
-      caption: data.caption,
-      hashtags: JSON.stringify(data.hashtags),
-      audioTrack: data.audioSuggestion ?? null,
-      hook: data.hook,
+      contentType: d.contentType ?? "REEL",
+      caption: d.caption,
+      hashtags: JSON.stringify(d.hashtags),
+      audioTrack: d.audioSuggestion ?? null,
+      hook: d.hook,
       pillar: req.pillar,
       approvalStatus: "PENDING",
-      aiReasoning: data.reasoning,
-      predictedScore: data.predictedScore ?? null,
-      flaggedForReview: data.flaggedForReview ?? false,
+      aiReasoning: d.reasoning,
+      predictedScore: d.predictedScore ?? null,
+      flaggedForReview: d.flaggedForReview ?? false,
       scheduledAt,
     },
   });
