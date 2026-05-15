@@ -10,7 +10,7 @@ export async function GET() {
       where: { status: "PUBLISHED" },
       include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
       orderBy: { publishedAt: "desc" },
-      take: 10,
+      take: 25,
     }),
     prisma.post.findMany({
       where: { approvalStatus: "PENDING" },
@@ -19,7 +19,8 @@ export async function GET() {
     }),
   ]);
 
-  const topPerformer = recentPosts.sort((a, b) => {
+  // Use spread to avoid mutating the date-sorted recentPosts array
+  const topPerformer = [...recentPosts].sort((a, b) => {
     const aV = a.metrics[0]?.views ?? 0;
     const bV = b.metrics[0]?.views ?? 0;
     return bV - aV;

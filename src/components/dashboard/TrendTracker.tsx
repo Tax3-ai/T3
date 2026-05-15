@@ -26,7 +26,7 @@ function SaturationMeter({ value }: { value: number }) {
   );
 }
 
-export function TrendTracker({ trends }: TrendTrackerProps) {
+export function TrendTracker({ trends, onSeed, isSeeding }: TrendTrackerProps & { onSeed?: () => void; isSeeding?: boolean }) {
   const byType: Record<string, TrendingItem[]> = {};
   for (const t of trends) {
     if (!byType[t.itemType]) byType[t.itemType] = [];
@@ -64,9 +64,24 @@ export function TrendTracker({ trends }: TrendTrackerProps) {
         ))}
 
         {trends.length === 0 && (
-          <p className="text-xs text-brand-gray-400 text-center py-4">
-            No trending data yet. Trends refresh daily.
-          </p>
+          <div className="text-center py-4 space-y-2">
+            {isSeeding ? (
+              <>
+                <div className="w-5 h-5 border-2 border-brand-red border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-brand-gray-400">Analysing your niche... (~15 secs)</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-brand-gray-400">No trending data yet.</p>
+                <button
+                  onClick={onSeed}
+                  className="text-xs text-brand-red hover:underline"
+                >
+                  Seed trends for your niche →
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
     </Card>

@@ -32,6 +32,8 @@ export interface Post {
   thumbnailUrl?: string | null;
   videoUrl?: string | null;
   mediaUrls?: string[] | null;
+  permalink?: string | null;
+  performanceScore?: number | null;
   scheduledAt?: Date | null;
   publishedAt?: Date | null;
   platformPostId?: string | null;

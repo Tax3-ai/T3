@@ -101,11 +101,25 @@ export async function POST() {
     let errors = 0;
 
     for (const item of media) {
-      // Skip if already imported
+      // Check if already imported
       const existing = await prisma.post.findFirst({
         where: { platformPostId: item.id },
       });
-      if (existing) { skipped++; continue; }
+      if (existing) {
+        // Backfill permalink + thumbnail if missing
+        if (!existing.permalink || !existing.thumbnailUrl) {
+          await prisma.post.update({
+            where: { id: existing.id },
+            data: {
+              permalink: existing.permalink ?? item.permalink ?? null,
+              thumbnailUrl: existing.thumbnailUrl ?? item.thumbnail_url ?? item.media_url ?? null,
+              videoUrl: existing.videoUrl ?? (item.media_type === "VIDEO" ? item.media_url ?? null : null),
+            },
+          });
+        }
+        skipped++;
+        continue;
+      }
 
       try {
         const insights = await fetchInsights(item.id, item.media_type, {
@@ -129,6 +143,7 @@ export async function POST() {
             pillar: guessPillar(caption),
             thumbnailUrl: item.thumbnail_url ?? item.media_url ?? null,
             videoUrl: item.media_type === "VIDEO" ? item.media_url ?? null : null,
+            permalink: item.permalink ?? null,
             publishedAt,
             platformPostId: item.id,
             approvalStatus: "APPROVED",

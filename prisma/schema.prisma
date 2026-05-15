@@ -48,6 +48,7 @@ model Post {
   scheduledAt     DateTime?
   publishedAt     DateTime?
   platformPostId  String?
+  permalink       String?        // Original post URL (e.g. Instagram permalink)
   approvalStatus  String         // PENDING | APPROVED | REJECTED | AUTO_APPROVED
   approvalNotes   String?
   aiReasoning     String?

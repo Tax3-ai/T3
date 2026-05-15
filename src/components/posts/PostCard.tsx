@@ -4,6 +4,7 @@ import { PlatformBadge, StatusBadge, Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow, format } from "date-fns";
+import Image from "next/image";
 import type { Post } from "@/types";
 
 interface PostCardProps {
@@ -25,11 +26,32 @@ export function PostCard({ post, onApprove, onReject, compact }: PostCardProps) 
   const latestMetrics = post.metrics?.sort((a, b) => b.checkpointHours - a.checkpointHours)[0];
   const pillarColor = PILLAR_COLORS[post.pillar] ?? "#888";
 
-  return (
+  const inner = (
     <Card
       className={compact ? "p-3" : "p-4"}
-      hover={!!onApprove}
+      hover={!!(onApprove || post.permalink)}
     >
+      {/* Thumbnail */}
+      {post.thumbnailUrl && (
+        <div className={`relative w-full overflow-hidden rounded-lg mb-3 bg-brand-gray-800 ${
+          compact ? "h-40" : "h-56"
+        }`}>
+          <Image
+            src={post.thumbnailUrl}
+            alt={post.caption?.slice(0, 60) ?? "Post thumbnail"}
+            fill
+            className="object-cover"
+            unoptimized
+          />
+          {post.contentType === "REEL" || post.contentType === "VIDEO" ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center">
+                <span className="text-white text-lg">▶</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
       {/* Header row */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -54,6 +76,17 @@ export function PostCard({ post, onApprove, onReject, compact }: PostCardProps) 
         </span>
       </div>
 
+      {/* Performance score badge */}
+      {post.performanceScore !== undefined && post.performanceScore !== null && (
+        <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full mb-2 ${
+          post.performanceScore >= 7 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+          : post.performanceScore >= 5 ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+          : "bg-red-500/20 text-red-400 border border-red-500/30"
+        }`}>
+          {post.performanceScore >= 7 ? "🔥" : post.performanceScore >= 5 ? "📈" : "📉"}
+          {post.performanceScore}/10
+        </div>
+      )}
       {/* Hook */}
       {post.hook && !compact && (
         <div className="mb-2 text-xs bg-brand-red/10 border border-brand-red/20 rounded-md px-3 py-1.5 text-brand-red font-medium">
@@ -142,6 +175,19 @@ export function PostCard({ post, onApprove, onReject, compact }: PostCardProps) 
         </div>
       )}
     </Card>
+  );
+
+  return post.permalink ? (
+    <a
+      href={post.permalink}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ display: "block", textDecoration: "none", cursor: "pointer" }}
+    >
+      {inner}
+    </a>
+  ) : (
+    inner
   );
 }
 

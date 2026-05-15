@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -15,6 +16,10 @@ export default function PrivacyPolicyPage() {
         </Link>
       </div>
 
+      <div className="flex items-center gap-3 mb-6">
+        <Image src="/icon.png" alt="Tax3 Social Agent" width={40} height={40} className="rounded-lg" />
+        <span className="text-white font-semibold text-lg">Tax3 Social Agent</span>
+      </div>
       <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
       <p className="text-brand-gray-400 text-sm mb-10">Last updated: 13 May 2025</p>
 

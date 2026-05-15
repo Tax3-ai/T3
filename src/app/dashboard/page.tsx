@@ -5,6 +5,7 @@ import { StatsRow } from "@/components/dashboard/StatsRow";
 import { ViewsChart, EngagementChart } from "@/components/dashboard/MetricsChart";
 import { TrendTracker } from "@/components/dashboard/TrendTracker";
 import { SuggestionsPanel } from "@/components/dashboard/SuggestionsPanel";
+import { RecommendationsPanel } from "@/components/dashboard/RecommendationsPanel";
 import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
 import type { Post, TrendingItem, ContentSuggestion, DashboardStats } from "@/types";
@@ -21,22 +22,39 @@ export default function DashboardPage() {
   const [suggestions, setSuggestions] = useState<ContentSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshingSuggestions, setIsRefreshingSuggestions] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [patterns, setPatterns] = useState<Array<{id:string;pattern:string;category:string;avgViews:number;avgEngagement:number;sampleSize:number;score:number;notes?:string|null}>>([]);
+  const [isRefreshingRecs, setIsRefreshingRecs] = useState(false);
+  const [scoreMap, setScoreMap] = useState<Record<string, number>>({});
   const [chartData, setChartData] = useState<Array<{ date: string; views: number; likes: number; engagement: number }>>([]);
 
   const load = useCallback(async () => {
-    const [dashRes, trendsRes, sugRes] = await Promise.all([
+    const [dashRes, trendsRes, sugRes, analyticsRes, recsRes] = await Promise.all([
       fetch("/api/dashboard"),
       fetch("/api/trends"),
       fetch("/api/suggestions"),
+      fetch("/api/analytics"),
+      fetch("/api/recommendations"),
     ]);
-    const [dash, trendData, sugData] = await Promise.all([
+    const [dash, trendData, sugData, analyticsData, recsData] = await Promise.all([
       dashRes.json(),
       trendsRes.json(),
       sugRes.json(),
+      analyticsRes.json(),
+      recsRes.json(),
     ]);
     setData(dash);
     setTrends(trendData);
     setSuggestions(sugData);
+    setPatterns(Array.isArray(recsData) ? recsData : []);
+    // Build score map: postId -> score
+    if (analyticsData?.scoredPosts) {
+      const map: Record<string, number> = {};
+      for (const p of analyticsData.scoredPosts) {
+        if (p.score !== null) map[p.id] = p.score;
+      }
+      setScoreMap(map);
+    }
 
     // Build chart data from recent posts
     if (dash.recentPosts?.length > 0) {
@@ -93,6 +111,29 @@ export default function DashboardPage() {
       await load();
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function seedTrends() {
+    setIsSeeding(true);
+    try {
+      await fetch("/api/trends/seed", { method: "POST" });
+      const res = await fetch("/api/trends");
+      setTrends(await res.json());
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
+  async function refreshRecommendations() {
+    setIsRefreshingRecs(true);
+    try {
+      await fetch("/api/recommendations", { method: "POST" });
+      const res = await fetch("/api/recommendations");
+      const data = await res.json();
+      setPatterns(Array.isArray(data) ? data : []);
+    } finally {
+      setIsRefreshingRecs(false);
     }
   }
 
@@ -202,8 +243,8 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-3">
           <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Recent Posts</h2>
           {data.recentPosts.length > 0 ? (
-            data.recentPosts.slice(0, 6).map((post) => (
-              <PostCard key={post.id} post={post} compact />
+            data.recentPosts.map((post) => (
+              <PostCard key={post.id} post={{ ...post, performanceScore: scoreMap[post.id] ?? null }} compact />
             ))
           ) : (
             <div className="text-center py-12 bg-brand-gray-900 rounded-xl border border-brand-gray-700">
@@ -216,7 +257,12 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-4">
-          <TrendTracker trends={trends} />
+          <TrendTracker trends={trends} onSeed={seedTrends} isSeeding={isSeeding} />
+          <RecommendationsPanel
+            patterns={patterns}
+            onRefresh={refreshRecommendations}
+            isRefreshing={isRefreshingRecs}
+          />
           <SuggestionsPanel
             suggestions={suggestions}
             onAccept={(id) => handleSuggestion(id, "ACCEPTED")}
