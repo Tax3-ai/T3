@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { getDashboardStats } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const [stats, recentPosts, pendingPosts] = await Promise.all([
     getDashboardStats(),

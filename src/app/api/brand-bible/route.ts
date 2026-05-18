@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { getBrandBible } from "@/lib/brand-bible";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const bible = await getBrandBible();
   if (!bible) return NextResponse.json({ error: "Brand bible not found" }, { status: 404 });
