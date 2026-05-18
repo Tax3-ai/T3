@@ -101,7 +101,26 @@ Rules:
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const data = JSON.parse(text);
+
+  // Strip markdown code fences if the model wrapped the JSON
+  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(cleaned);
+  } catch {
+    // Retry once with an explicit correction prompt
+    const retryResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: "You are a JSON repair assistant. Return only valid JSON — no markdown, no explanation.",
+      messages: [
+        { role: "user", content: `Fix this invalid JSON and return only the corrected JSON:\n\n${text}` },
+      ],
+    });
+    const retryText = retryResponse.content[0].type === "text" ? retryResponse.content[0].text : "{}";
+    data = JSON.parse(retryText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim());
+  }
 
   const scheduledAt = new Date();
   const [hours, minutes] = POSTING_TIMES[req.slot][req.platform].split(":").map(Number);
@@ -110,20 +129,31 @@ Rules:
     scheduledAt.setDate(scheduledAt.getDate() + 1);
   }
 
+  const d = data as {
+    contentType?: string;
+    caption: string;
+    hashtags: string[];
+    audioSuggestion?: string | null;
+    hook: string;
+    reasoning: string;
+    predictedScore?: number | null;
+    flaggedForReview?: boolean;
+  };
+
   const post = await prisma.post.create({
     data: {
       platform: req.platform,
       status: "PENDING_APPROVAL",
-      contentType: data.contentType ?? "REEL",
-      caption: data.caption,
-      hashtags: JSON.stringify(data.hashtags),
-      audioTrack: data.audioSuggestion ?? null,
-      hook: data.hook,
+      contentType: d.contentType ?? "REEL",
+      caption: d.caption,
+      hashtags: JSON.stringify(d.hashtags),
+      audioTrack: d.audioSuggestion ?? null,
+      hook: d.hook,
       pillar: req.pillar,
       approvalStatus: "PENDING",
-      aiReasoning: data.reasoning,
-      predictedScore: data.predictedScore ?? null,
-      flaggedForReview: data.flaggedForReview ?? false,
+      aiReasoning: d.reasoning,
+      predictedScore: d.predictedScore ?? null,
+      flaggedForReview: d.flaggedForReview ?? false,
       scheduledAt,
     },
   });
@@ -194,68 +224,114 @@ export async function generateSuggestions(count: number = 5) {
   const trends = await prisma.trendingItem.findMany({
     where: { isActive: true, expiresAt: { gte: new Date() } },
     orderBy: { growthRate: "desc" },
-    take: 15,
+    take: 10,
   });
 
+  // Get top performing posts for pattern context
   const topPosts = await prisma.post.findMany({
     where: { status: "PUBLISHED" },
-    include: { metrics: true },
-    take: 5,
+    include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
     orderBy: { publishedAt: "desc" },
+    take: 30,
   });
+
+  const topByViews = [...topPosts]
+    .filter((p) => p.metrics[0]?.views)
+    .sort((a, b) => (b.metrics[0]?.views ?? 0) - (a.metrics[0]?.views ?? 0))
+    .slice(0, 5)
+    .map((p) => ({
+      pillar: p.pillar,
+      contentType: p.contentType,
+      hook: p.hook,
+      caption: p.caption?.slice(0, 80),
+      views: p.metrics[0]?.views,
+      saves: p.metrics[0]?.saves,
+      engagement: p.metrics[0]?.engagementRate,
+    }));
+
+  const trendList = trends
+    .map((t) => `[${t.itemType}] ${t.platform}: ${t.value} (growth rate: ${t.growthRate})`)
+    .join("\n");
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    system:
-      "You are a viral content strategist for a premium London streetwear brand. Return valid JSON only.",
+    max_tokens: 4096,
+    system: "You are a viral content strategist for a premium London streetwear brand. Return valid JSON array only — no markdown, no explanation.",
     messages: [
       {
         role: "user",
         content: `${brandContext}
 
-Current trends: ${JSON.stringify(trends.map((t) => ({ type: t.itemType, value: t.value, platform: t.platform })))}
+You are generating content suggestions for Tax3 inspired by what is currently working for the top-performing independent clothing brands on Instagram and TikTok.
 
-Recent top posts: ${JSON.stringify(topPosts.map((p) => ({ platform: p.platform, pillar: p.pillar, hook: p.hook })))}
+BRANDS REACHING THE MOST PEOPLE IN THIS NICHE RIGHT NOW:
+- Protect.ldn — hyper-authentic London street content, founder-led stories, raw behind-the-scenes, no polish
+- Godmade — cinematic reels, model-led, very aesthetic, high production lifestyle content
+- Mertra Mertra — editorial style, slow-mo fits, minimal captions, strong visual identity
+- Gone Club — community-first, relatable London youth content, UGC style
+- Broken Planet — emotional storytelling, mission-driven, strong CTA, trend-reactive
+- Y.g.studios — minimal aesthetic, subtle flex, quiet luxury streetwear positioning
 
-Generate ${count} content suggestions as a JSON array. Each suggestion:
-{
-  "platform": "INSTAGRAM or TIKTOK",
-  "pillar": "lifestyle|behind_scenes|campaign|community|events",
-  "hook": "Opening hook",
-  "captionDraft": "Draft caption",
-  "hashtags": ["5", "hashtags"],
-  "audioSuggestion": "Sound suggestion or null",
-  "visualNotes": "What to film/show",
-  "reasoning": "Why this will work for Tax3 right now"
-}`,
+WHAT'S WORKING ACROSS THESE BRANDS (patterns you must draw from):
+- Authentic street-cast content outperforms polished studio shots 3:1 on TikTok
+- 90s nostalgia hooks get 2-4x more saves than generic fashion hooks
+- Founder/behind-the-scenes content builds the strongest follow-through
+- First 2 seconds: model in fit, confident energy, or a disruptive statement — no slow intros
+- Reels under 15 seconds with text overlays outperform longer content on IG
+- UGC-style (shaky cam, real locations) is beating studio content for reach
+
+TRENDING IN TAX3'S NICHE RIGHT NOW:
+${trendList}
+
+TAX3'S OWN TOP PERFORMING CONTENT:
+${JSON.stringify(topByViews, null, 2)}
+
+Generate ${count} highly specific, immediately actionable content suggestions for Tax3. Each suggestion should be directly inspired by a real tactic working for the brands above.
+
+Return a JSON array:
+[
+  {
+    "platform": "INSTAGRAM" or "TIKTOK",
+    "pillar": "lifestyle" | "behind_scenes" | "campaign" | "community" | "events",
+    "hook": "Exact opening line or first-frame concept — make it stop the scroll",
+    "captionDraft": "Full caption with Tax3 voice — sarcastic, London, confident. Include CTA.",
+    "hashtags": ["8-10 hashtags", "mix of niche and broad"],
+    "audioSuggestion": "Specific track name or genre that fits, or null",
+    "visualNotes": "Exact director's brief — what to shoot, how to shoot it, what to wear, where",
+    "reasoning": "Which brand is doing this, what results they're getting, why it works for Tax3 specifically",
+    "inspiredBy": "Brand name this is inspired by"
+  }
+]`,
       },
     ],
   });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "[]";
-  const suggestions = JSON.parse(text);
+  const raw = response.content[0].type === "text" ? response.content[0].text : "[]";
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  let suggestions: Array<Record<string, unknown>>;
+  try {
+    suggestions = JSON.parse(cleaned);
+  } catch {
+    // Try to extract JSON array if wrapped in extra text
+    const match = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (!match) throw new Error("Could not parse suggestions JSON");
+    suggestions = JSON.parse(match[0]);
+  }
 
   await prisma.contentSuggestion.deleteMany({ where: { status: "PENDING" } });
   await prisma.contentSuggestion.createMany({
-    data: suggestions.map((s: {
-      platform: string;
-      pillar: string;
-      hook: string;
-      captionDraft: string;
-      hashtags: string[];
-      audioSuggestion?: string;
-      visualNotes: string;
-      reasoning: string;
-    }) => ({
-      platform: s.platform,
-      pillar: s.pillar,
-      hook: s.hook,
-      captionDraft: s.captionDraft,
-      hashtags: JSON.stringify(s.hashtags),
-      audioSuggestion: s.audioSuggestion ?? null,
-      visualNotes: s.visualNotes,
-      reasoning: s.reasoning,
+    data: suggestions.map((s) => ({
+      platform: String(s.platform ?? "INSTAGRAM"),
+      pillar: String(s.pillar ?? "lifestyle"),
+      hook: String(s.hook ?? ""),
+      captionDraft: String(s.captionDraft ?? ""),
+      hashtags: JSON.stringify(Array.isArray(s.hashtags) ? s.hashtags : []),
+      audioSuggestion: s.audioSuggestion ? String(s.audioSuggestion) : null,
+      visualNotes: String(s.visualNotes ?? ""),
+      reasoning: s.inspiredBy
+        ? `Inspired by ${s.inspiredBy}: ${String(s.reasoning ?? "")}`
+        : String(s.reasoning ?? ""),
     })),
   });
 

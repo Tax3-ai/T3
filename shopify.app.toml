@@ -1,0 +1,15 @@
+name = "Tax3 Agent"
+client_id = "c88b1b7e87c6258be4cf6dd2661745d6"
+application_url = "https://social.tax3.co.uk"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_all_orders,read_products,read_analytics"
+
+[auth]
+redirect_urls = [
+  "https://social.tax3.co.uk/api/shopify/callback"
+]
+
+[webhooks]
+api_version = "2025-01"

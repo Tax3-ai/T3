@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getDashboardStats } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
@@ -11,7 +12,7 @@ export async function GET() {
       where: { status: "PUBLISHED" },
       include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
       orderBy: { publishedAt: "desc" },
-      take: 10,
+      take: 25,
     }),
     prisma.post.findMany({
       where: { approvalStatus: "PENDING" },
@@ -20,21 +21,26 @@ export async function GET() {
     }),
   ]);
 
-  const topPerformer = recentPosts.sort((a, b) => {
+  // Use spread to avoid mutating the date-sorted recentPosts array
+  const topPerformer = [...recentPosts].sort((a, b) => {
     const aV = a.metrics[0]?.views ?? 0;
     const bV = b.metrics[0]?.views ?? 0;
     return bV - aV;
   })[0] ?? null;
 
+  const parsePost = (p: typeof recentPosts[0]) => ({
+    ...p,
+    hashtags: JSON.parse(p.hashtags ?? "[]"),
+    mediaUrls: p.mediaUrls ? JSON.parse(p.mediaUrls) : null,
+  });
+
   return NextResponse.json({
-    stats: { ...stats, topPerformer },
-    recentPosts: recentPosts.map((p) => ({
-      ...p,
-      hashtags: JSON.parse(p.hashtags ?? "[]"),
-    })),
+    stats: { ...stats, topPerformer: topPerformer ? parsePost(topPerformer) : null },
+    recentPosts: recentPosts.map(parsePost),
     pendingApproval: pendingPosts.map((p) => ({
       ...p,
       hashtags: JSON.parse(p.hashtags ?? "[]"),
+      mediaUrls: p.mediaUrls ? JSON.parse(p.mediaUrls) : null,
     })),
   });
 }

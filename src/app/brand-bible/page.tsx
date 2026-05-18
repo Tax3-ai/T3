@@ -14,7 +14,7 @@ export default function BrandBiblePage() {
 
   useEffect(() => {
     fetch("/api/brand-bible")
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : null)
       .then(setBible);
   }, []);
 
@@ -35,10 +35,22 @@ export default function BrandBiblePage() {
     }
   }
 
-  if (!bible) {
+  if (bible === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-6 h-6 border-2 border-brand-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (bible === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <span className="text-4xl block mb-3">📖</span>
+          <p className="text-white font-semibold mb-1">No Brand Bible yet</p>
+          <p className="text-brand-gray-400 text-sm">Contact your admin to seed the brand bible data.</p>
+        </div>
       </div>
     );
   }
