@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { label: "Trends", href: "/trends", icon: "📈" },
   { label: "Reports", href: "/reports", icon: "📊" },
   { label: "Brand Bible", href: "/brand-bible", icon: "📖" },
+  { label: "Shopify", href: "/shopify", icon: "🛍️" },
 ];
 
 export function Navigation() {
@@ -21,9 +23,7 @@ export function Navigation() {
       <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand-red rounded-lg flex items-center justify-center">
-            <span className="text-white font-black text-sm">T3</span>
-          </div>
+          <Image src="/icon.png" alt="Tax3" width={32} height={32} className="rounded-lg" />
           <div className="flex flex-col leading-none">
             <span className="text-white font-bold text-sm tracking-wider">TAX3</span>
             <span className="text-brand-gray-400 text-[10px] uppercase tracking-widest">Social Agent</span>

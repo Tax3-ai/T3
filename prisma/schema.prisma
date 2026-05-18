@@ -146,6 +146,30 @@ model StrategyReport {
   createdAt       DateTime @default(now())
 }
 
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model ShopifyOrder {
+  id              String   @id @default(cuid())
+  shopifyId       String   @unique
+  orderNumber     String
+  totalPrice      Float
+  currency        String   @default("GBP")
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmContent      String?  // maps to postId
+  referringSite   String?
+  landingPage     String?
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+}
+
 model ContentSuggestion {
   id              String   @id @default(cuid())
   platform        String
