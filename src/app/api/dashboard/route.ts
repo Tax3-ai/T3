@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-export const dynamic = "force-dynamic";
 import { getDashboardStats } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
