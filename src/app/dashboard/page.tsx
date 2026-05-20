@@ -16,8 +16,23 @@ interface DashboardData {
   pendingApproval: Post[];
 }
 
+interface TikTokForm {
+  url: string;
+  views: string;
+  likes: string;
+  comments: string;
+  shares: string;
+  publishedAt: string;
+}
+
+const EMPTY_TIKTOK_FORM: TikTokForm = { url: "", views: "0", likes: "0", comments: "0", shares: "0", publishedAt: "" };
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [showTikTokModal, setShowTikTokModal] = useState(false);
+  const [tikTokForm, setTikTokForm] = useState<TikTokForm>(EMPTY_TIKTOK_FORM);
+  const [tikTokImporting, setTikTokImporting] = useState(false);
+  const [tikTokMsg, setTikTokMsg] = useState<string | null>(null);
   const [trends, setTrends] = useState<TrendingItem[]>([]);
   const [suggestions, setSuggestions] = useState<ContentSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -85,6 +100,37 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function importTikTokPost() {
+    setTikTokImporting(true);
+    setTikTokMsg(null);
+    try {
+      const res = await fetch("/api/import/tiktok", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: tikTokForm.url,
+          views: parseInt(tikTokForm.views) || 0,
+          likes: parseInt(tikTokForm.likes) || 0,
+          comments: parseInt(tikTokForm.comments) || 0,
+          shares: parseInt(tikTokForm.shares) || 0,
+          publishedAt: tikTokForm.publishedAt || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTikTokMsg(`✅ Imported: ${data.title || tikTokForm.url}`);
+        setTikTokForm(EMPTY_TIKTOK_FORM);
+        await load();
+      } else {
+        setTikTokMsg(`❌ ${data.error}`);
+      }
+    } catch {
+      setTikTokMsg("❌ Import failed — check the URL and try again.");
+    } finally {
+      setTikTokImporting(false);
+    }
+  }
 
   async function importFromInstagram() {
     setIsGenerating(true);
@@ -191,6 +237,13 @@ export default function DashboardPage() {
           <Button
             variant="secondary"
             size="sm"
+            onClick={() => { setShowTikTokModal(true); setTikTokMsg(null); }}
+          >
+            ↓ Import TikTok
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={importFromInstagram}
             loading={isGenerating}
           >
@@ -206,6 +259,74 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* TikTok Import Modal */}
+      {showTikTokModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="bg-brand-gray-900 border border-brand-gray-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg">🎵 Import TikTok Post</h2>
+              <button onClick={() => setShowTikTokModal(false)} className="text-brand-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            <p className="text-brand-gray-400 text-xs">Works for both <strong className="text-white">@tax3official</strong> and <strong className="text-white">@tax3.files</strong>. Paste the full TikTok video URL.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-brand-gray-400 text-xs mb-1 block">TikTok Video URL *</label>
+                <input
+                  type="url"
+                  placeholder="https://www.tiktok.com/@tax3official/video/..."
+                  value={tikTokForm.url}
+                  onChange={e => setTikTokForm(f => ({ ...f, url: e.target.value }))}
+                  className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder:text-brand-gray-600 focus:outline-none focus:border-brand-red"
+                />
+              </div>
+              <div>
+                <label className="text-brand-gray-400 text-xs mb-1 block">Date Posted (optional)</label>
+                <input
+                  type="date"
+                  value={tikTokForm.publishedAt}
+                  onChange={e => setTikTokForm(f => ({ ...f, publishedAt: e.target.value }))}
+                  className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-red"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {(["views", "likes", "comments", "shares"] as const).map(field => (
+                  <div key={field}>
+                    <label className="text-brand-gray-400 text-xs mb-1 block capitalize">{field}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tikTokForm[field]}
+                      onChange={e => setTikTokForm(f => ({ ...f, [field]: e.target.value }))}
+                      className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-red"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {tikTokMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg ${
+                tikTokMsg.startsWith("✅") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+              }`}>{tikTokMsg}</p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowTikTokModal(false)}
+                className="flex-1 bg-brand-gray-800 hover:bg-brand-gray-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={importTikTokPost}
+                disabled={!tikTokForm.url || tikTokImporting}
+                className="flex-1 bg-brand-red hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+              >
+                {tikTokImporting ? "Importing..." : "Import Post"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pending approval alert */}
       {data.stats.pendingApproval > 0 && (
