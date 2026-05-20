@@ -7,7 +7,7 @@ import { TrendTracker } from "@/components/dashboard/TrendTracker";
 import { SuggestionsPanel } from "@/components/dashboard/SuggestionsPanel";
 import { RecommendationsPanel } from "@/components/dashboard/RecommendationsPanel";
 import { PerformanceDiagnosis } from "@/components/dashboard/PerformanceDiagnosis";
-import type { Diagnosis } from "@/app/api/performance-diagnosis/route";
+import type { Diagnosis } from "@/types/diagnosis";
 import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
 import type { Post, TrendingItem, ContentSuggestion, DashboardStats } from "@/types";

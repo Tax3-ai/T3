@@ -1,32 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Diagnosis } from "@/types/diagnosis";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-export interface DiagnosisIssue {
-  issue: string;
-  detail: string;
-  severity: "high" | "medium" | "low";
-}
-
-export interface ActionWeek {
-  week: number;
-  focus: string;
-  actions: string[];
-}
-
-export interface Diagnosis {
-  headline: string;
-  overallScore: number;
-  summary: string;
-  issues: DiagnosisIssue[];
-  actionPlan: ActionWeek[];
-  quickWins: string[];
-  generatedAt: string;
-}
 
 export async function GET() {
   const cached = await prisma.settings.findUnique({ where: { key: "performance_diagnosis" } });

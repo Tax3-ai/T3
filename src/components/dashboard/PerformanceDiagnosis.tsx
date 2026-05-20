@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Diagnosis } from "@/app/api/performance-diagnosis/route";
+import type { Diagnosis } from "@/types/diagnosis";
 
 interface Props {
   diagnosis: Diagnosis | null;
