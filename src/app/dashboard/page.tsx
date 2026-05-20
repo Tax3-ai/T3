@@ -18,14 +18,10 @@ interface DashboardData {
 
 interface TikTokForm {
   url: string;
-  views: string;
-  likes: string;
-  comments: string;
-  shares: string;
   publishedAt: string;
 }
 
-const EMPTY_TIKTOK_FORM: TikTokForm = { url: "", views: "0", likes: "0", comments: "0", shares: "0", publishedAt: "" };
+const EMPTY_TIKTOK_FORM: TikTokForm = { url: "", publishedAt: "" };
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -110,10 +106,6 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: tikTokForm.url,
-          views: parseInt(tikTokForm.views) || 0,
-          likes: parseInt(tikTokForm.likes) || 0,
-          comments: parseInt(tikTokForm.comments) || 0,
-          shares: parseInt(tikTokForm.shares) || 0,
           publishedAt: tikTokForm.publishedAt || undefined,
         }),
       });
@@ -289,20 +281,7 @@ export default function DashboardPage() {
                   className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-red"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {(["views", "likes", "comments", "shares"] as const).map(field => (
-                  <div key={field}>
-                    <label className="text-brand-gray-400 text-xs mb-1 block capitalize">{field}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={tikTokForm[field]}
-                      onChange={e => setTikTokForm(f => ({ ...f, [field]: e.target.value }))}
-                      className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-red"
-                    />
-                  </div>
-                ))}
-              </div>
+              <p className="text-brand-gray-500 text-xs">Views, likes, comments, saves &amp; shares are pulled automatically from TikTok.</p>
             </div>
             {tikTokMsg && (
               <p className={`text-sm px-3 py-2 rounded-lg ${

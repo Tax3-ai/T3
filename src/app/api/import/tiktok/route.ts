@@ -3,11 +3,21 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-interface OEmbedResponse {
+interface TikWMData {
   title?: string;
-  author_name?: string;
-  author_url?: string;
-  thumbnail_url?: string;
+  cover?: string;
+  play_count?: number;
+  digg_count?: number;
+  comment_count?: number;
+  share_count?: number;
+  collect_count?: number;
+  create_time?: number;
+  author?: { unique_id?: string };
+}
+
+interface TikWMResponse {
+  code: number;
+  data?: TikWMData;
 }
 
 function extractVideoId(url: string): string | null {
@@ -32,7 +42,7 @@ function guessPillar(title: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { url, views = 0, likes = 0, comments = 0, shares = 0, publishedAt } = body;
+    const { url } = body;
 
     if (!url) {
       return NextResponse.json({ error: "url is required" }, { status: 400 });
@@ -49,24 +59,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Post already imported", postId: existing.id });
     }
 
-    // Fetch oEmbed data from TikTok
+    // Fetch stats + metadata from tikwm
     let title = "";
     let thumbnailUrl: string | null = null;
     let authorName: string | null = extractUsername(url);
+    let views = body.views ?? 0;
+    let likes = body.likes ?? 0;
+    let comments = body.comments ?? 0;
+    let shares = body.shares ?? 0;
+    let saves = body.saves ?? 0;
+    let publishedAt = body.publishedAt;
 
     try {
-      const oembedRes = await fetch(
-        `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+      const tikwmRes = await fetch(
+        `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`,
         { headers: { "User-Agent": "Mozilla/5.0" } }
       );
-      if (oembedRes.ok) {
-        const oembed: OEmbedResponse = await oembedRes.json();
-        title = oembed.title ?? "";
-        thumbnailUrl = oembed.thumbnail_url ?? null;
-        authorName = oembed.author_name ?? authorName;
+      if (tikwmRes.ok) {
+        const tikwm: TikWMResponse = await tikwmRes.json();
+        if (tikwm.code === 0 && tikwm.data) {
+          const d = tikwm.data;
+          title = d.title ?? "";
+          thumbnailUrl = d.cover ?? null;
+          authorName = d.author?.unique_id ?? authorName;
+          views = d.play_count ?? views;
+          likes = d.digg_count ?? likes;
+          comments = d.comment_count ?? comments;
+          shares = d.share_count ?? shares;
+          saves = d.collect_count ?? saves;
+          if (d.create_time) publishedAt = new Date(d.create_time * 1000).toISOString();
+        }
       }
     } catch {
-      // oEmbed failed — continue with manual data
+      // tikwm failed — fall back to manual values
     }
 
     const hashtags = (title.match(/#\w+/g) ?? []).map((h) => h.toLowerCase());
