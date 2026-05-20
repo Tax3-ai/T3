@@ -358,7 +358,7 @@ export default function ShopifyPage() {
                 <div key={product.id} className="border border-brand-gray-700 rounded-xl p-4 flex gap-3 items-start">
                   <div className="w-14 h-14 rounded-lg bg-brand-gray-700 shrink-0 overflow-hidden">
                     {product.image?.src ? (
-                      <Image src={product.image.src} alt={product.title} width={56} height={56} className="object-cover w-full h-full" />
+                      <Image src={product.image.src} alt={product.title} width={56} height={56} className="object-cover w-full h-full" unoptimized />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xl">👕</div>
                     )}
