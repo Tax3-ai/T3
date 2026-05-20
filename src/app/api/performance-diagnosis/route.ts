@@ -19,6 +19,7 @@ export async function GET() {
 }
 
 export async function POST() {
+  try {
   const posts = await prisma.post.findMany({
     where: { status: "PUBLISHED" },
     include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
@@ -181,4 +182,9 @@ Rules:
   });
 
   return NextResponse.json(diagnosis);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[diagnosis] error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
