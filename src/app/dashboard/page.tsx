@@ -6,6 +6,8 @@ import { ViewsChart, EngagementChart } from "@/components/dashboard/MetricsChart
 import { TrendTracker } from "@/components/dashboard/TrendTracker";
 import { SuggestionsPanel } from "@/components/dashboard/SuggestionsPanel";
 import { RecommendationsPanel } from "@/components/dashboard/RecommendationsPanel";
+import { PerformanceDiagnosis } from "@/components/dashboard/PerformanceDiagnosis";
+import type { Diagnosis } from "@/app/api/performance-diagnosis/route";
 import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
 import type { Post, TrendingItem, ContentSuggestion, DashboardStats } from "@/types";
@@ -37,27 +39,32 @@ export default function DashboardPage() {
   const [patterns, setPatterns] = useState<Array<{id:string;pattern:string;category:string;avgViews:number;avgEngagement:number;sampleSize:number;score:number;notes?:string|null}>>([]);
   const [isRefreshingRecs, setIsRefreshingRecs] = useState(false);
   const [scoreMap, setScoreMap] = useState<Record<string, number>>({});
+  const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [chartData, setChartData] = useState<Array<{ date: string; views: number; likes: number; engagement: number }>>([]);
 
   const load = useCallback(async () => {
-    const [dashRes, trendsRes, sugRes, analyticsRes, recsRes] = await Promise.all([
+    const [dashRes, trendsRes, sugRes, analyticsRes, recsRes, diagRes] = await Promise.all([
       fetch("/api/dashboard"),
       fetch("/api/trends"),
       fetch("/api/suggestions"),
       fetch("/api/analytics"),
       fetch("/api/recommendations"),
+      fetch("/api/performance-diagnosis"),
     ]);
-    const [dash, trendData, sugData, analyticsData, recsData] = await Promise.all([
+    const [dash, trendData, sugData, analyticsData, recsData, diagData] = await Promise.all([
       dashRes.json(),
       trendsRes.json(),
       sugRes.json(),
       analyticsRes.json(),
       recsRes.json(),
+      diagRes.json(),
     ]);
     setData(dash);
     setTrends(trendData);
     setSuggestions(sugData);
     setPatterns(Array.isArray(recsData) ? recsData : []);
+    setDiagnosis(diagData);
     // Build score map: postId -> score
     if (analyticsData?.scoredPosts) {
       const map: Record<string, number> = {};
@@ -160,6 +167,17 @@ export default function DashboardPage() {
       setTrends(await res.json());
     } finally {
       setIsSeeding(false);
+    }
+  }
+
+  async function runDiagnosis() {
+    setIsDiagnosing(true);
+    try {
+      const res = await fetch("/api/performance-diagnosis", { method: "POST" });
+      const data = await res.json();
+      if (data.headline) setDiagnosis(data);
+    } finally {
+      setIsDiagnosing(false);
     }
   }
 
@@ -325,6 +343,13 @@ export default function DashboardPage() {
           </a>
         </div>
       )}
+
+      {/* Performance Diagnosis */}
+      <PerformanceDiagnosis
+        diagnosis={diagnosis}
+        onRun={runDiagnosis}
+        isRunning={isDiagnosing}
+      />
 
       {/* Stats */}
       <StatsRow stats={data.stats} />
