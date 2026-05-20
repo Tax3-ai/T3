@@ -95,8 +95,8 @@ export async function POST() {
     .sort((a, b) => b.avgViews - a.avgViews)[0];
 
   const sorted = [...postSummaries].sort((a, b) => b.views - a.views);
-  const top5 = sorted.slice(0, 5);
-  const bottom5 = sorted.slice(-5).reverse();
+  const top5 = sorted.slice(0, 3).map(p => ({ platform: p.platform, pillar: p.pillar, views: p.views, likes: p.likes, engagement: p.engagementRate, caption: p.caption?.slice(0, 60) }));
+  const bottom5 = sorted.slice(-3).reverse().map(p => ({ platform: p.platform, pillar: p.pillar, views: p.views, likes: p.likes, engagement: p.engagementRate, caption: p.caption?.slice(0, 60) }));
 
   const overallAvgViews = Math.round(avg(postsWithMetrics.map(p => p.metrics[0].views)));
   const overallAvgEng = round(avg(postsWithMetrics.map(p => p.metrics[0].engagementRate ?? 0)));
@@ -164,8 +164,8 @@ Rules:
 - 3-5 issues max`;
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2000,
+    model: "claude-haiku-4-5",
+    max_tokens: 1500,
     system: "You are a brutally honest social media strategist. Return valid JSON only, no markdown.",
     messages: [{ role: "user", content: prompt }],
   });
