@@ -56,10 +56,11 @@ export function ChatWidget() {
         fullText += decoder.decode(value, { stream: true });
         setMessages([...newMessages, { role: "assistant", content: fullText }]);
       }
-    } catch {
+    } catch (err) {
+      console.error("Chat error:", err);
       setMessages([
         ...newMessages,
-        { role: "assistant", content: "Something went wrong. Try again." },
+        { role: "assistant", content: "__error__" },
       ]);
     } finally {
       setLoading(false);
@@ -114,7 +115,23 @@ export function ChatWidget() {
                       : "bg-[#1e1e1e] text-gray-100 rounded-bl-sm border border-white/5"
                   }`}
                 >
-                  {msg.content}
+                  {msg.content === "__error__" ? (
+                    <span className="flex flex-col gap-2">
+                      <span className="text-red-400">Something went wrong.</span>
+                      <button
+                        onClick={() => {
+                          const lastUser = [...messages].reverse().find((m) => m.role === "user");
+                          if (lastUser) {
+                            setMessages(messages.slice(0, -1));
+                            setInput(lastUser.content);
+                          }
+                        }}
+                        className="text-xs text-brand-red underline text-left"
+                      >
+                        Tap to retry
+                      </button>
+                    </span>
+                  ) : msg.content}
                   {msg.role === "assistant" && loading && i === messages.length - 1 && msg.content === "" && (
                     <span className="inline-flex gap-1 items-center">
                       <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />

@@ -11,40 +11,62 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    // Pull live Tax3 context
-    const brandContext = await getBrandBibleAsPromptContext().catch(() => "");
+    // Only fetch heavy DB context on the first message to avoid connection
+    // timeouts on follow-up turns in the same conversation.
+    const isFirstMessage = messages.length === 1;
 
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    let brandContext = "";
+    let postSummaryText = "No posts data loaded (follow-up turn).";
+    let pendingText = "";
+    let suggestionsText = "";
 
-    const [recentPosts, pendingApprovals, suggestions] = await Promise.all([
-      prisma.post.findMany({
-        where: { publishedAt: { gte: oneWeekAgo }, status: "PUBLISHED" },
-        include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
-        orderBy: { publishedAt: "desc" },
-        take: 10,
-      }).catch(() => []),
-      prisma.post.findMany({
-        where: { approvalStatus: "PENDING" },
-        orderBy: { scheduledAt: "asc" },
-        take: 5,
-      }).catch(() => []),
-      prisma.contentSuggestion.findMany({
-        where: { status: "PENDING" },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }).catch(() => []),
-    ]);
+    if (isFirstMessage) {
+      brandContext = await getBrandBibleAsPromptContext().catch(() => "");
 
-    const postSummary = recentPosts.map((p) => ({
-      platform: p.platform,
-      pillar: p.pillar,
-      hook: p.hook,
-      views: p.metrics[0]?.views ?? 0,
-      likes: p.metrics[0]?.likes ?? 0,
-      engagement: p.metrics[0]?.engagementRate ?? 0,
-      publishedAt: p.publishedAt,
-    }));
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      const [recentPosts, pendingApprovals, suggestions] = await Promise.all([
+        prisma.post.findMany({
+          where: { publishedAt: { gte: oneWeekAgo }, status: "PUBLISHED" },
+          include: { metrics: { orderBy: { checkpointHours: "desc" }, take: 1 } },
+          orderBy: { publishedAt: "desc" },
+          take: 10,
+        }).catch(() => []),
+        prisma.post.findMany({
+          where: { approvalStatus: "PENDING" },
+          orderBy: { scheduledAt: "asc" },
+          take: 5,
+        }).catch(() => []),
+        prisma.contentSuggestion.findMany({
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        }).catch(() => []),
+      ]);
+
+      const postSummary = recentPosts.map((p) => ({
+        platform: p.platform,
+        pillar: p.pillar,
+        hook: p.hook,
+        views: p.metrics[0]?.views ?? 0,
+        likes: p.metrics[0]?.likes ?? 0,
+        engagement: p.metrics[0]?.engagementRate ?? 0,
+        publishedAt: p.publishedAt,
+      }));
+
+      postSummaryText = postSummary.length > 0
+        ? JSON.stringify(postSummary, null, 2)
+        : "No posts published this week yet.";
+
+      pendingText = `Posts awaiting approval: ${pendingApprovals.length}\n${
+        pendingApprovals.map((p) => `- [${p.platform}] "${p.hook}" scheduled ${p.scheduledAt?.toISOString()}`).join("\n") || "None"
+      }`;
+
+      suggestionsText = `Pending content suggestions: ${suggestions.length}\n${
+        suggestions.map((s) => `- [${s.platform}] "${s.hook}"`).join("\n") || "None"
+      }`;
+    }
 
     const systemPrompt = `You are the Tax3 social media agent — a sharp, knowledgeable assistant built into the Tax3 dashboard.
 
@@ -52,13 +74,11 @@ ${brandContext}
 
 LIVE DASHBOARD CONTEXT:
 Recent published posts (last 7 days):
-${postSummary.length > 0 ? JSON.stringify(postSummary, null, 2) : "No posts published this week yet."}
+${postSummaryText}
 
-Posts awaiting approval: ${pendingApprovals.length}
-${pendingApprovals.map((p) => `- [${p.platform}] "${p.hook}" scheduled ${p.scheduledAt?.toISOString()}`).join("\n") || "None"}
+${pendingText}
 
-Pending content suggestions: ${suggestions.length}
-${suggestions.map((s) => `- [${s.platform}] "${s.hook}"`).join("\n") || "None"}
+${suggestionsText}
 
 Your job:
 - Help JB with content strategy, caption writing, post ideas, performance analysis
