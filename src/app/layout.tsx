@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <main className="pt-14 md:pt-14 min-h-screen">
           {children}
         </main>
+        <ChatWidget />
         <footer className="border-t border-brand-gray-700 py-6 px-4">
           <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-brand-gray-400">
             <span>© {new Date().getFullYear()} Tax3. All rights reserved.</span>
