@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { PlatformBadge, StatusBadge, Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +12,7 @@ interface PostCardProps {
   post: Post & { metrics?: Array<{ views: number; likes: number; shares: number; saves: number; engagementRate?: number | null; checkpointHours: number }> };
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  onUpdate?: () => void;
   compact?: boolean;
 }
 
@@ -22,9 +24,40 @@ const PILLAR_COLORS: Record<string, string> = {
   events: "#3B82F6",
 };
 
-export function PostCard({ post, onApprove, onReject, compact }: PostCardProps) {
+export function PostCard({ post, onApprove, onReject, onUpdate, compact }: PostCardProps) {
   const latestMetrics = post.metrics?.sort((a, b) => b.checkpointHours - a.checkpointHours)[0];
   const pillarColor = PILLAR_COLORS[post.pillar] ?? "#888";
+
+  // Media URL editing
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState(post.videoUrl ?? "");
+  const [thumbUrl, setThumbUrl] = useState(post.thumbnailUrl ?? "");
+  const [mediaSaving, setMediaSaving] = useState(false);
+  const [mediaSaved, setMediaSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hasMedia = !!(post.videoUrl || videoUrl.trim());
+
+  async function saveMedia() {
+    setMediaSaving(true);
+    try {
+      await fetch(`/api/posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: videoUrl.trim() || null,
+          thumbnailUrl: thumbUrl.trim() || null,
+        }),
+      });
+      setMediaSaved(true);
+      setMediaOpen(false);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setMediaSaved(false), 3000);
+      onUpdate?.();
+    } finally {
+      setMediaSaving(false);
+    }
+  }
 
   const inner = (
     <Card
@@ -157,6 +190,67 @@ export function PostCard({ post, onApprove, onReject, compact }: PostCardProps) 
             {post.aiReasoning}
           </p>
         </details>
+      )}
+
+      {/* Media URL section */}
+      {(onApprove || onReject) && post.approvalStatus === "PENDING" && !compact && (
+        <div className="mt-3 border-t border-brand-gray-700 pt-3">
+          <button
+            type="button"
+            onClick={() => setMediaOpen((o) => !o)}
+            className="flex items-center gap-2 text-xs w-full text-left hover:opacity-80 transition-opacity"
+          >
+            <span className={hasMedia ? "text-emerald-400" : "text-yellow-400"}>
+              {hasMedia ? "✅" : "⚠️"}
+            </span>
+            <span className={hasMedia ? "text-emerald-400" : "text-yellow-400 font-medium"}>
+              {mediaSaved
+                ? "Media saved!"
+                : hasMedia
+                ? "Media attached — click to change"
+                : "No media attached — post will fail to publish"}
+            </span>
+            <span className="ml-auto text-brand-gray-500">{mediaOpen ? "▲" : "▼"}</span>
+          </button>
+
+          {mediaOpen && (
+            <div className="mt-2 space-y-2">
+              <div>
+                <label className="block text-xs text-brand-gray-400 mb-1">
+                  Video URL <span className="text-brand-gray-500">(required — Cloudinary, S3, or direct link)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://res.cloudinary.com/... or https://..."
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  className="w-full bg-brand-gray-800 border border-brand-gray-600 rounded-md px-3 py-1.5 text-xs text-white placeholder-brand-gray-500 focus:outline-none focus:border-brand-red transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-brand-gray-400 mb-1">
+                  Thumbnail URL <span className="text-brand-gray-500">(optional — cover image)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={thumbUrl}
+                  onChange={(e) => setThumbUrl(e.target.value)}
+                  className="w-full bg-brand-gray-800 border border-brand-gray-600 rounded-md px-3 py-1.5 text-xs text-white placeholder-brand-gray-500 focus:outline-none focus:border-brand-red transition-colors"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={saveMedia}
+                loading={mediaSaving}
+                className="w-full"
+              >
+                💾 Save Media URLs
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Approval actions */}

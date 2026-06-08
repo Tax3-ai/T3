@@ -65,6 +65,7 @@ export function ApprovalQueue({ posts, onUpdate }: ApprovalQueueProps) {
               post={post}
               onApprove={(id) => handleAction(id, "approve")}
               onReject={(id) => handleAction(id, "reject")}
+              onUpdate={onUpdate}
             />
           </div>
         ))}
