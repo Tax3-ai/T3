@@ -233,7 +233,7 @@ export default function DashboardPage() {
             TAX3 <span className="text-brand-red">AGENT</span>
           </h1>
           <p className="text-brand-gray-400 text-sm mt-0.5">
-            Autonomous growth — 3 posts/day · Instagram & TikTok
+            Autonomous growth · Instagram live · TikTok pending API approval · Posting paused
           </p>
         </div>
         <div className="flex gap-2">

@@ -46,7 +46,7 @@ export function StatsRow({ stats }: StatsRowProps) {
         label="Published This Week"
         value={stats.publishedThisWeek}
         icon="🚀"
-        subtext={`of target 42`}
+        subtext="posts live"
       />
       <StatCard
         label="Total Posts"
@@ -62,11 +62,11 @@ export function StatsRow({ stats }: StatsRowProps) {
         accentColor={stats.followerGrowth7d > 0 ? "#10B981" : undefined}
       />
       <StatCard
-        label="Target (90d)"
-        value="£40K"
-        icon="🎯"
-        subtext="revenue goal"
-        accentColor="#E31E24"
+        label="Posting Status"
+        value="Paused"
+        icon="⏸️"
+        subtext="resume in Vercel env vars"
+        accentColor="#F59E0B"
       />
     </div>
   );

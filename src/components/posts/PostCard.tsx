@@ -38,6 +38,53 @@ export function PostCard({ post, onApprove, onReject, onUpdate, compact }: PostC
 
   const hasMedia = !!(post.videoUrl || videoUrl.trim());
 
+  // Higgsfield AI video generation
+  const [generating, setGenerating] = useState(false);
+  const [genStatus, setGenStatus] = useState<"idle" | "queued" | "in_progress" | "completed" | "failed">("idle");
+  const [genRequestId, setGenRequestId] = useState<string | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function generateAiVideo() {
+    setGenerating(true);
+    setGenStatus("queued");
+    try {
+      const res = await fetch("/api/generate/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      const data = await res.json() as { requestId?: string; error?: string };
+      if (!res.ok || data.error) {
+        setGenStatus("failed");
+        setGenerating(false);
+        return;
+      }
+      setGenRequestId(data.requestId ?? null);
+      // Poll every 8 seconds until done
+      pollTimer.current = setInterval(async () => {
+        try {
+          const poll = await fetch(`/api/generate/video?requestId=${data.requestId}&postId=${post.id}`);
+          const job = await poll.json() as { status: string; videoUrl?: string };
+          setGenStatus(job.status as typeof genStatus);
+          if (job.status === "completed") {
+            if (pollTimer.current) clearInterval(pollTimer.current);
+            if (job.videoUrl) setVideoUrl(job.videoUrl);
+            setGenerating(false);
+            onUpdate?.();
+          } else if (job.status === "failed") {
+            if (pollTimer.current) clearInterval(pollTimer.current);
+            setGenerating(false);
+          }
+        } catch {
+          // keep polling
+        }
+      }, 8000);
+    } catch {
+      setGenStatus("failed");
+      setGenerating(false);
+    }
+  }
+
   async function saveMedia() {
     setMediaSaving(true);
     try {
@@ -239,15 +286,41 @@ export function PostCard({ post, onApprove, onReject, onUpdate, compact }: PostC
                   className="w-full bg-brand-gray-800 border border-brand-gray-600 rounded-md px-3 py-1.5 text-xs text-white placeholder-brand-gray-500 focus:outline-none focus:border-brand-red transition-colors"
                 />
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={saveMedia}
-                loading={mediaSaving}
-                className="w-full"
-              >
-                💾 Save Media URLs
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={saveMedia}
+                  loading={mediaSaving}
+                  className="flex-1"
+                >
+                  💾 Save URLs
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={generateAiVideo}
+                  loading={generating}
+                  className="flex-1"
+                  title="Generate a video with Higgsfield AI using this post’s visual brief"
+                >
+                  {genStatus === "queued" && "⏳ Queued..."}
+                  {genStatus === "in_progress" && "🎬 Generating..."}
+                  {genStatus === "completed" && "✅ Done!"}
+                  {genStatus === "failed" && "❌ Failed"}
+                  {genStatus === "idle" && "🤖 AI Video"}
+                </Button>
+              </div>
+              {genStatus !== "idle" && genStatus !== "completed" && genStatus !== "failed" && (
+                <p className="text-xs text-brand-gray-500 text-center">
+                  Higgsfield is rendering your video — this takes 30–120 seconds. Page will update automatically.
+                </p>
+              )}
+              {genStatus === "failed" && (
+                <p className="text-xs text-red-400 text-center">
+                  Generation failed. Check HIGGSFIELD_API_KEY is set in Vercel env vars.
+                </p>
+              )}
             </div>
           )}
         </div>

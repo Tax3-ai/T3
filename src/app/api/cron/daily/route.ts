@@ -21,6 +21,12 @@ export async function GET(request: Request) {
 
   const pillars = slotPillars[slot] ?? slotPillars.morning;
 
+  // Respect the global posting pause flag
+  const paused = process.env.POSTING_PAUSED === "true";
+  if (paused) {
+    return NextResponse.json({ slot, paused: true, message: "Posting is paused — set POSTING_PAUSED=false to resume." });
+  }
+
   try {
     const [igPost, ttPost] = await Promise.allSettled([
       generatePost({ platform: "INSTAGRAM" as Platform, pillar: pillars.ig, slot }),
