@@ -8,142 +8,193 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model BrandBible {
-  id                  String   @id @default(cuid())
-  brandName           String
-  tagline             String
-  originStory         String
-  mission             String
-  vision              String
-  personality         String
-  audience            String
-  voice               String
-  visual              String
-  contentPillars      String
-  competitors         String
-  redLines            String
-  offLimitPhrases     String
-  lovedPhrases        String
-  slogans             String
-  inspirationAccounts String
-  avoidAccounts       String
-  topics              String
-  updatedAt           DateTime @updatedAt
-  createdAt           DateTime @default(now())
+model Customer {
+  id         String      @id @default(cuid())
+  name       String
+  phone      String      @unique
+  email      String?
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  repairJobs RepairJob[]
+  orders     Order[]
+  leads      Lead[]
 }
 
-model Post {
-  id               String        @id @default(cuid())
-  platform         String
-  status           String
-  contentType      String
-  caption          String
-  hashtags         String
-  audioTrack       String?
-  hook             String?
-  pillar           String
-  thumbnailUrl     String?
-  videoUrl         String?
-  mediaUrls        String?
-  scheduledAt      DateTime?
-  publishedAt      DateTime?
-  platformPostId   String?
-  approvalStatus   String
-  approvalNotes    String?
-  aiReasoning      String?
-  predictedScore   Float?
-  flaggedForReview Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  permalink        String?
-  metrics          PostMetrics[]
+model RepairJob {
+  id               String          @id @default(cuid())
+  jobNumber        String          @unique
+  customerId       String
+  customer         Customer        @relation(fields: [customerId], references: [id])
+  deviceBrand      String
+  deviceModel      String
+  deviceColor      String?
+  imei             String?
+  faultDescription String
+  repairType       String
+  status           RepairStatus    @default(RECEIVED)
+  quotedPrice      Float?
+  finalPrice       Float?
+  depositPaid      Float?
+  stripePaymentId  String?
+  technicianNotes  String?
+  internalNotes    String?
+  followUpSent     Boolean         @default(false)
+  collectedAt      DateTime?
+  estimatedReady   DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  statusHistory    StatusHistory[]
 }
 
-model PostMetrics {
-  id              String   @id @default(cuid())
-  postId          String
-  checkpointHours Int
-  views           Int      @default(0)
-  likes           Int      @default(0)
-  comments        Int      @default(0)
-  shares          Int      @default(0)
-  saves           Int      @default(0)
-  completionRate  Float?
-  followerGrowth  Int?
-  engagementRate  Float?
-  recordedAt      DateTime @default(now())
-  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, checkpointHours])
+model StatusHistory {
+  id           String       @id @default(cuid())
+  jobId        String
+  job          RepairJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status       RepairStatus
+  message      String?
+  smsSent      Boolean      @default(false)
+  whatsappSent Boolean      @default(false)
+  sentAt       DateTime?
+  createdAt    DateTime     @default(now())
 }
 
-model TrendingItem {
+enum RepairStatus {
+  RECEIVED
+  DIAGNOSED
+  AWAITING_PARTS
+  IN_REPAIR
+  READY
+  COLLECTED
+  CANCELLED
+}
+
+model PricingRule {
   id          String   @id @default(cuid())
-  platform    String
-  itemType    String
-  value       String
-  category    String?
-  saturation  Float    @default(0.5)
-  growthRate  Float    @default(0)
-  usageCount  Int      @default(0)
-  niches      String
-  exampleUrls String
+  deviceBrand String
+  deviceModel String?
+  repairType  String
+  minPrice    Float
+  maxPrice    Float
   isActive    Boolean  @default(true)
-  recordedAt  DateTime @default(now())
-  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model CompetitorPost {
-  id            String   @id @default(cuid())
-  account       String
-  platform      String
-  url           String   @unique
-  hook          String?
-  caption       String?
-  audioUsed     String?
-  views         Int?
-  likes         Int?
-  shares        Int?
-  saves         Int?
-  comments      Int?
-  lengthSeconds Int?
-  format        String?
-  textOverlays  String?
-  cta           String?
-  aspectRatio   String?
-  pillars       String
-  notes         String?
-  recordedAt    DateTime @default(now())
+model Lead {
+  id               String     @id @default(cuid())
+  name             String
+  phone            String
+  email            String?
+  deviceBrand      String
+  deviceModel      String?
+  faultDescription String
+  estimatedMin     Float?
+  estimatedMax     Float?
+  source           String     @default("website_estimator")
+  status           LeadStatus @default(NEW)
+  customerId       String?
+  customer         Customer?  @relation(fields: [customerId], references: [id])
+  telegramAlerted  Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
 
-model PatternEntry {
-  id            String   @id @default(cuid())
-  pattern       String
-  category      String
-  avgViews      Float    @default(0)
-  avgLikes      Float    @default(0)
-  avgEngagement Float    @default(0)
-  sampleSize    Int      @default(0)
-  score         Float    @default(0)
-  notes         String?
-  isActive      Boolean  @default(true)
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  LOST
 }
 
-model StrategyReport {
-  id              String   @id @default(cuid())
-  weekStarting    DateTime
-  totalPosts      Int
-  avgViews        Float    @default(0)
-  avgEngagement   Float    @default(0)
-  topPosts        String
-  wins            String
-  losses          String
-  insights        String
-  nextWeekPlan    String
-  recommendations String
-  createdAt       DateTime @default(now())
+model Product {
+  id             String           @id @default(cuid())
+  sku            String           @unique
+  name           String
+  description    String?
+  category       String
+  brand          String?
+  compatibleWith String?
+  condition      String           @default("NEW")
+  price          Float
+  costPrice      Float?
+  stockQty       Int              @default(0)
+  lowStockAlert  Int              @default(5)
+  images         String           @default("[]")
+  isActive       Boolean          @default(true)
+  weight         Float?
+  barcode        String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  variants       ProductVariant[]
+  orderItems     OrderItem[]
+}
+
+model ProductVariant {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        String      @unique
+  attribute  String
+  value      String
+  priceDiff  Float       @default(0)
+  stockQty   Int         @default(0)
+  createdAt  DateTime    @default(now())
+  orderItems OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  customerId      String?
+  customer        Customer?   @relation(fields: [customerId], references: [id])
+  customerName    String
+  customerPhone   String
+  customerEmail   String?
+  status          OrderStatus @default(PENDING)
+  subtotal        Float
+  shippingCost    Float       @default(0)
+  total           Float
+  stripePaymentId String?
+  shippingAddress String?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model OrderItem {
+  id        String          @id @default(cuid())
+  orderId   String
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
+
+model TelegramAlert {
+  id           String   @id @default(cuid())
+  type         String
+  payload      String
+  chatId       String
+  messageId    String?
+  sent         Boolean  @default(false)
+  acknowledged Boolean  @default(false)
+  createdAt    DateTime @default(now())
 }
 
 model Settings {
@@ -152,35 +203,4 @@ model Settings {
   value     String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
-}
-
-model ShopifyOrder {
-  id            String    @id @default(cuid())
-  shopifyId     String    @unique
-  orderNumber   String
-  totalPrice    Float
-  currency      String    @default("GBP")
-  utmSource     String?
-  utmMedium     String?
-  utmCampaign   String?
-  utmContent    String?
-  referringSite String?
-  landingPage   String?
-  createdAt     DateTime  @default(now())
-  processedAt   DateTime?
-}
-
-model ContentSuggestion {
-  id              String   @id @default(cuid())
-  platform        String
-  pillar          String
-  hook            String
-  captionDraft    String
-  hashtags        String
-  audioSuggestion String?
-  visualNotes     String
-  reasoning       String
-  predictedScore  Float?
-  status          String   @default("PENDING")
-  createdAt       DateTime @default(now())
 }

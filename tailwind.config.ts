@@ -9,33 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          red: "#E31E24",
-          "red-dark": "#B01519",
-          "red-light": "#FF3B41",
-          black: "#0A0A0A",
-          "gray-900": "#111111",
-          "gray-800": "#1A1A1A",
-          "gray-700": "#2A2A2A",
-          "gray-600": "#3A3A3A",
-          "gray-400": "#888888",
-          "gray-200": "#CCCCCC",
-          white: "#FFFFFF",
+        primary: {
+          DEFAULT: "#2563EB",
+          dark: "#1D4ED8",
+          light: "#3B82F6",
+        },
+        gray: {
+          950: "#0A0A0F",
+          900: "#111118",
+          800: "#1A1A24",
+          700: "#252533",
+          600: "#383850",
+          500: "#6B6B85",
+          400: "#9898B0",
+          200: "#CCCCDD",
+          50:  "#F5F5FA",
         },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-brand":
-          "linear-gradient(135deg, #E31E24 0%, #0A0A0A 100%)",
-      },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "fade-in": "fadeIn 0.3s ease-in-out",
-        "slide-up": "slideUp 0.3s ease-out",
+        "fade-in": "fadeIn 0.2s ease-in-out",
+        "slide-up": "slideUp 0.2s ease-out",
       },
       keyframes: {
         fadeIn: {
@@ -43,7 +41,7 @@ const config: Config = {
           "100%": { opacity: "1" },
         },
         slideUp: {
-          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "0%": { transform: "translateY(8px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
       },

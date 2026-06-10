@@ -1,412 +1,134 @@
 "use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { StatusBadge } from "@/components/StatusBadge";
+import { REPAIR_STATUSES } from "@/lib/constants";
 
-import { useEffect, useState, useCallback } from "react";
-import { StatsRow } from "@/components/dashboard/StatsRow";
-import { ViewsChart, EngagementChart } from "@/components/dashboard/MetricsChart";
-import { TrendTracker } from "@/components/dashboard/TrendTracker";
-import { SuggestionsPanel } from "@/components/dashboard/SuggestionsPanel";
-import { RecommendationsPanel } from "@/components/dashboard/RecommendationsPanel";
-import { PerformanceDiagnosis } from "@/components/dashboard/PerformanceDiagnosis";
-import type { Diagnosis } from "@/types/diagnosis";
-import { PostCard } from "@/components/posts/PostCard";
-import { Button } from "@/components/ui/Button";
-import type { Post, TrendingItem, ContentSuggestion, DashboardStats } from "@/types";
-
-interface DashboardData {
-  stats: DashboardStats & { topPerformer?: Post };
-  recentPosts: Post[];
-  pendingApproval: Post[];
+interface Job {
+  id: string; jobNumber: string; status: string;
+  deviceBrand: string; deviceModel: string; faultDescription: string;
+  quotedPrice: number | null; createdAt: string;
+  customer: { name: string; phone: string };
 }
-
-interface TikTokForm {
-  url: string;
-  publishedAt: string;
-}
-
-const EMPTY_TIKTOK_FORM: TikTokForm = { url: "", publishedAt: "" };
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [showTikTokModal, setShowTikTokModal] = useState(false);
-  const [tikTokForm, setTikTokForm] = useState<TikTokForm>(EMPTY_TIKTOK_FORM);
-  const [tikTokImporting, setTikTokImporting] = useState(false);
-  const [tikTokMsg, setTikTokMsg] = useState<string | null>(null);
-  const [trends, setTrends] = useState<TrendingItem[]>([]);
-  const [suggestions, setSuggestions] = useState<ContentSuggestion[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isRefreshingSuggestions, setIsRefreshingSuggestions] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [patterns, setPatterns] = useState<Array<{id:string;pattern:string;category:string;avgViews:number;avgEngagement:number;sampleSize:number;score:number;notes?:string|null}>>([]);
-  const [isRefreshingRecs, setIsRefreshingRecs] = useState(false);
-  const [scoreMap, setScoreMap] = useState<Record<string, number>>({});
-  const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
-  const [isDiagnosing, setIsDiagnosing] = useState(false);
-  const [chartData, setChartData] = useState<Array<{ date: string; views: number; likes: number; engagement: number }>>([]);
-
-  const load = useCallback(async () => {
-    const [dashRes, trendsRes, sugRes, analyticsRes, recsRes, diagRes] = await Promise.all([
-      fetch("/api/dashboard"),
-      fetch("/api/trends"),
-      fetch("/api/suggestions"),
-      fetch("/api/analytics"),
-      fetch("/api/recommendations"),
-      fetch("/api/performance-diagnosis"),
-    ]);
-    const [dash, trendData, sugData, analyticsData, recsData, diagData] = await Promise.all([
-      dashRes.json(),
-      trendsRes.json(),
-      sugRes.json(),
-      analyticsRes.json(),
-      recsRes.json(),
-      diagRes.json(),
-    ]);
-    setData(dash);
-    setTrends(trendData);
-    setSuggestions(sugData);
-    setPatterns(Array.isArray(recsData) ? recsData : []);
-    setDiagnosis(diagData);
-    // Build score map: postId -> score
-    if (analyticsData?.scoredPosts) {
-      const map: Record<string, number> = {};
-      for (const p of analyticsData.scoredPosts) {
-        if (p.score !== null) map[p.id] = p.score;
-      }
-      setScoreMap(map);
-    }
-
-    // Build chart data from recent posts
-    if (dash.recentPosts?.length > 0) {
-      const byDate: Record<string, { views: number; likes: number; engagement: number; count: number }> = {};
-      for (const post of dash.recentPosts) {
-        if (!post.publishedAt) continue;
-        const date = new Date(post.publishedAt).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
-        if (!byDate[date]) byDate[date] = { views: 0, likes: 0, engagement: 0, count: 0 };
-        const m = post.metrics?.[0];
-        if (m) {
-          byDate[date].views += m.views;
-          byDate[date].likes += m.likes;
-          byDate[date].engagement += m.engagementRate ?? 0;
-          byDate[date].count++;
-        }
-      }
-      setChartData(
-        Object.entries(byDate).map(([date, v]) => ({
-          date,
-          views: v.views,
-          likes: v.likes,
-          engagement: v.count > 0 ? parseFloat((v.engagement / v.count).toFixed(2)) : 0,
-        }))
-      );
-    }
-  }, []);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    load();
-  }, [load]);
+    setLoading(true);
+    const p = new URLSearchParams();
+    if (statusFilter) p.set("status", statusFilter);
+    if (search) p.set("search", search);
+    fetch(`/api/jobs?${p}`).then(r => r.json()).then(d => { setJobs(d); setLoading(false); });
+  }, [statusFilter, search]);
 
-  async function importTikTokPost() {
-    setTikTokImporting(true);
-    setTikTokMsg(null);
-    try {
-      const res = await fetch("/api/import/tiktok", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: tikTokForm.url,
-          publishedAt: tikTokForm.publishedAt || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTikTokMsg(`✅ Imported: ${data.title || tikTokForm.url}`);
-        setTikTokForm(EMPTY_TIKTOK_FORM);
-        await load();
-      } else {
-        setTikTokMsg(`❌ ${data.error}`);
-      }
-    } catch {
-      setTikTokMsg("❌ Import failed — check the URL and try again.");
-    } finally {
-      setTikTokImporting(false);
-    }
-  }
-
-  async function importFromInstagram() {
-    setIsGenerating(true);
-    try {
-      const res = await fetch("/api/import/instagram", { method: "POST" });
-      const data = await res.json();
-      alert(`Import complete! ${data.imported} posts imported, ${data.skipped} already existed.`);
-      await load();
-    } catch {
-      alert("Import failed — check console for details.");
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
-  async function generateBatch() {
-    setIsGenerating(true);
-    try {
-      await fetch("/api/generate/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot: "morning" }),
-      });
-      await load();
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
-  async function seedTrends() {
-    setIsSeeding(true);
-    try {
-      await fetch("/api/trends/seed", { method: "POST" });
-      const res = await fetch("/api/trends");
-      setTrends(await res.json());
-    } finally {
-      setIsSeeding(false);
-    }
-  }
-
-  async function runDiagnosis() {
-    setIsDiagnosing(true);
-    try {
-      const res = await fetch("/api/performance-diagnosis", { method: "POST" });
-      const data = await res.json();
-      if (data.headline) setDiagnosis(data);
-    } finally {
-      setIsDiagnosing(false);
-    }
-  }
-
-  async function refreshRecommendations() {
-    setIsRefreshingRecs(true);
-    try {
-      await fetch("/api/recommendations", { method: "POST" });
-      const res = await fetch("/api/recommendations");
-      const data = await res.json();
-      setPatterns(Array.isArray(data) ? data : []);
-    } finally {
-      setIsRefreshingRecs(false);
-    }
-  }
-
-  async function refreshSuggestions() {
-    setIsRefreshingSuggestions(true);
-    try {
-      await fetch("/api/suggestions", { method: "POST" });
-      const res = await fetch("/api/suggestions");
-      setSuggestions(await res.json());
-    } finally {
-      setIsRefreshingSuggestions(false);
-    }
-  }
-
-  async function handleSuggestion(id: string, status: "ACCEPTED" | "DISMISSED") {
-    await fetch("/api/suggestions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    setSuggestions((prev) => prev.filter((s) => s.id !== id));
-  }
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-brand-red border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-brand-gray-400 text-sm">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const today = new Date().toDateString();
+  const stats = [
+    { label: "Total Jobs",        value: jobs.length,                                                      color: "text-white" },
+    { label: "Active",            value: jobs.filter(j => !["COLLECTED","CANCELLED"].includes(j.status)).length, color: "text-blue-400" },
+    { label: "Ready to Collect",  value: jobs.filter(j => j.status === "READY").length,                   color: "text-green-400" },
+    { label: "New Today",         value: jobs.filter(j => new Date(j.createdAt).toDateString() === today).length, color: "text-yellow-400" },
+    { label: "Revenue (collected)", value: `£${jobs.filter(j => j.status === "COLLECTED").reduce((s,j) => s+(j.quotedPrice||0),0).toFixed(0)}`, color: "text-primary" },
+  ];
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-screen-xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            TAX3 <span className="text-brand-red">AGENT</span>
-          </h1>
-          <p className="text-brand-gray-400 text-sm mt-0.5">
-            Autonomous growth · Instagram live · TikTok pending API approval · Posting paused
-          </p>
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="text-gray-500 mt-1 text-sm">Repair job management</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={load}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => { setShowTikTokModal(true); setTikTokMsg(null); }}
-          >
-            ↓ Import TikTok
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={importFromInstagram}
-            loading={isGenerating}
-          >
-            ↓ Import from Instagram
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={generateBatch}
-            loading={isGenerating}
-          >
-            Generate Posts
-          </Button>
-        </div>
+        <Link href="/jobs/new" className="btn-primary">+ New Job</Link>
       </div>
-
-      {/* TikTok Import Modal */}
-      {showTikTokModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="bg-brand-gray-900 border border-brand-gray-700 rounded-2xl p-6 w-full max-w-md space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-white font-bold text-lg">🎵 Import TikTok Post</h2>
-              <button onClick={() => setShowTikTokModal(false)} className="text-brand-gray-400 hover:text-white text-xl">✕</button>
-            </div>
-            <p className="text-brand-gray-400 text-xs">Works for both <strong className="text-white">@tax3official</strong> and <strong className="text-white">@tax3.files</strong>. Paste the full TikTok video URL.</p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-brand-gray-400 text-xs mb-1 block">TikTok Video URL *</label>
-                <input
-                  type="url"
-                  placeholder="https://www.tiktok.com/@tax3official/video/..."
-                  value={tikTokForm.url}
-                  onChange={e => setTikTokForm(f => ({ ...f, url: e.target.value }))}
-                  className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder:text-brand-gray-600 focus:outline-none focus:border-brand-red"
-                />
-              </div>
-              <div>
-                <label className="text-brand-gray-400 text-xs mb-1 block">Date Posted (optional)</label>
-                <input
-                  type="date"
-                  value={tikTokForm.publishedAt}
-                  onChange={e => setTikTokForm(f => ({ ...f, publishedAt: e.target.value }))}
-                  className="w-full bg-brand-gray-800 border border-brand-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-red"
-                />
-              </div>
-              <p className="text-brand-gray-500 text-xs">Views, likes, comments, saves &amp; shares are pulled automatically from TikTok.</p>
-            </div>
-            {tikTokMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg ${
-                tikTokMsg.startsWith("✅") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-              }`}>{tikTokMsg}</p>
-            )}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setShowTikTokModal(false)}
-                className="flex-1 bg-brand-gray-800 hover:bg-brand-gray-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={importTikTokPost}
-                disabled={!tikTokForm.url || tikTokImporting}
-                className="flex-1 bg-brand-red hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-              >
-                {tikTokImporting ? "Importing..." : "Import Post"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pending approval alert */}
-      {data.stats.pendingApproval > 0 && (
-        <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-          <span className="text-2xl">⏳</span>
-          <div className="flex-1">
-            <p className="text-yellow-400 font-semibold text-sm">
-              {data.stats.pendingApproval} post{data.stats.pendingApproval !== 1 ? "s" : ""} awaiting your approval
-            </p>
-            <p className="text-yellow-400/60 text-xs">Review before they can be scheduled and published.</p>
-          </div>
-          <a
-            href="/approval"
-            className="text-sm text-yellow-400 hover:text-yellow-300 border border-yellow-500/40 rounded-lg px-3 py-1.5 transition-colors"
-          >
-            Review →
-          </a>
-        </div>
-      )}
-
-      {/* Performance Diagnosis */}
-      <PerformanceDiagnosis
-        diagnosis={diagnosis}
-        onRun={runDiagnosis}
-        isRunning={isDiagnosing}
-      />
 
       {/* Stats */}
-      <StatsRow stats={data.stats} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {stats.map(s => (
+          <div key={s.label} className="card p-5">
+            <p className="text-gray-500 text-xs mb-1">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
 
-      {/* Charts */}
-      {chartData.length > 0 && (
-        <div className="grid md:grid-cols-2 gap-4">
-          <ViewsChart data={chartData} />
-          <EngagementChart data={chartData} />
-        </div>
-      )}
-
-      {/* Main content grid */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        {/* Recent posts feed */}
-        <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Recent Posts</h2>
-          {data.recentPosts.length > 0 ? (
-            data.recentPosts.map((post) => (
-              <PostCard key={post.id} post={{ ...post, performanceScore: scoreMap[post.id] ?? null }} compact />
-            ))
-          ) : (
-            <div className="text-center py-12 bg-brand-gray-900 rounded-xl border border-brand-gray-700">
-              <span className="text-4xl block mb-3">🚀</span>
-              <p className="text-brand-gray-400 text-sm">No posts yet.</p>
-              <p className="text-brand-gray-600 text-xs mt-1">Click "Generate Posts" to start the agent.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-4">
-          <TrendTracker trends={trends} onSeed={seedTrends} isSeeding={isSeeding} />
-          <RecommendationsPanel
-            patterns={patterns}
-            onRefresh={refreshRecommendations}
-            isRefreshing={isRefreshingRecs}
-          />
-          <SuggestionsPanel
-            suggestions={suggestions}
-            onAccept={(id) => handleSuggestion(id, "ACCEPTED")}
-            onDismiss={(id) => handleSuggestion(id, "DISMISSED")}
-            onRefresh={refreshSuggestions}
-            isRefreshing={isRefreshingSuggestions}
-          />
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search jobs, customers, devices..."
+          className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-primary outline-none text-sm w-64 transition-colors" />
+        <div className="flex gap-2 flex-wrap">
+          {[{ value: "", label: "All" }, ...REPAIR_STATUSES].map(s => (
+            <button key={s.value} onClick={() => setStatusFilter(s.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === s.value ? "bg-primary text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:text-white"
+              }`}>
+              {s.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Top performer */}
-      {data.stats.topPerformer && (
-        <div>
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
-            🏆 Top Performer
-          </h2>
-          <PostCard post={data.stats.topPerformer} />
-        </div>
-      )}
+      {/* Table */}
+      <div className="card overflow-hidden mb-8">
+        {loading ? (
+          <div className="text-center py-16 text-gray-500">Loading...</div>
+        ) : jobs.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-500 mb-3">No jobs found</p>
+            <Link href="/jobs/new" className="text-primary hover:text-primary-light text-sm">Create first job →</Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  {["Job #","Customer","Device","Fault","Status","Price","Date",""].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {jobs.map(job => (
+                  <tr key={job.id} className="hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-gray-300">{job.jobNumber}</td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-white">{job.customer.name}</p>
+                      <p className="text-xs text-gray-500">{job.customer.phone}</p>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-300">{job.deviceBrand} {job.deviceModel}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[160px] truncate">{job.faultDescription}</td>
+                    <td className="px-4 py-3"><StatusBadge status={job.status} /></td>
+                    <td className="px-4 py-3 text-sm text-white">{job.quotedPrice ? `£${job.quotedPrice}` : "—"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{new Date(job.createdAt).toLocaleDateString("en-GB")}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`/jobs/${job.id}`} className="text-primary hover:text-primary-light text-sm font-medium">View →</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Quick Nav */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { href:"/jobs/new",      icon:"🔧", label:"New Job",     desc:"Log a device for repair" },
+          { href:"/customers",     icon:"👥", label:"Customers",   desc:"View customer database" },
+          { href:"/products",      icon:"📦", label:"Products",    desc:"Inventory & store catalog" },
+          { href:"/leads",         icon:"📋", label:"Leads",       desc:"Website enquiries" },
+        ].map(n => (
+          <Link key={n.href} href={n.href} className="card p-5 hover:border-primary/30 transition-colors group">
+            <span className="text-2xl mb-2 block">{n.icon}</span>
+            <p className="text-white font-medium text-sm group-hover:text-primary transition-colors">{n.label}</p>
+            <p className="text-gray-500 text-xs mt-0.5">{n.desc}</p>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
