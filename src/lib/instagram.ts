@@ -115,7 +115,7 @@ export async function getPostInsights(postId: string): Promise<{
   reach: number;
 }> {
   const token = getToken();
-  const metrics = "video_views,likes,comments,shares,saved,reach,plays";
+  const metrics = "views,likes,comments,shares,saved,reach";
 
   const res = await fetch(
     `${BASE_URL}/${postId}/insights?metric=${metrics}&access_token=${token}`
@@ -130,7 +130,7 @@ export async function getPostInsights(postId: string): Promise<{
   };
 
   return {
-    views: get("video_views") || get("plays"),
+    views: get("views"),
     likes: get("likes"),
     comments: get("comments"),
     shares: get("shares"),

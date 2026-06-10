@@ -43,9 +43,7 @@ async function fetchInsights(mediaId: string, mediaType: string, fallback: { lik
   views: number; likes: number; comments: number; shares: number; saves: number; reach: number;
 }> {
   // Try video metrics first for VIDEO, then fall back to image metrics
-  const metricSets = mediaType === "VIDEO"
-    ? ["plays,likes,comments,shares,saved,reach", "reach,likes,comments,shares,saved,total_interactions"]
-    : ["reach,likes,comments,shares,saved,total_interactions"];
+  const metricSets = ["views,likes,comments,shares,saved,reach", "reach,likes,comments,shares,saved,total_interactions"];
 
   for (const metrics of metricSets) {
     try {
@@ -61,7 +59,7 @@ async function fetchInsights(mediaId: string, mediaType: string, fallback: { lik
       };
 
       return {
-        views: get("plays") || get("reach"),
+        views: get("views") || get("reach"),
         likes: get("likes") || fallback.likes,
         comments: get("comments") || fallback.comments,
         shares: get("shares"),
