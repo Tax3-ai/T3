@@ -131,6 +131,101 @@ function extractHookPattern(hook: string): string {
   return "Statement hook";
 }
 
+// Sentinel checkpoint value for "live/current" metrics — always the highest,
+// so dashboard queries (orderBy checkpointHours desc, take 1) pick this first.
+const LIVE_CHECKPOINT = 99999;
+
+/**
+ * Refresh live metrics for every published post, regardless of age.
+ * Upserts a LIVE_CHECKPOINT record so the dashboard always shows current numbers.
+ * Called daily by /api/cron/refresh-metrics.
+ */
+export async function refreshLiveMetrics(): Promise<{ updated: number; errors: number }> {
+  const posts = await prisma.post.findMany({
+    where: { status: "PUBLISHED", platformPostId: { not: null } },
+    select: { id: true, platform: true, platformPostId: true, permalink: true },
+  });
+
+  let updated = 0;
+  let errors = 0;
+
+  for (const post of posts) {
+    try {
+      let stats: { views: number; likes: number; comments: number; shares: number; saves: number } | null = null;
+
+      if (post.platform === "INSTAGRAM") {
+        const ig = await getIGInsights(post.platformPostId!);
+        stats = { views: ig.views, likes: ig.likes, comments: ig.comments, shares: ig.shares, saves: ig.saves };
+      } else if (post.platform === "TIKTOK") {
+        // Try official TikTok API first, fall back to tikwm scraper
+        try {
+          const tt = await getTTStats(post.platformPostId!);
+          stats = { views: tt.views, likes: tt.likes, comments: tt.comments, shares: tt.shares, saves: 0 };
+        } catch {
+          // Fallback: re-scrape via tikwm using stored permalink/URL
+          const videoUrl = post.permalink;
+          if (videoUrl) {
+            const tikwmRes = await fetch(
+              `https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`,
+              { headers: { "User-Agent": "Mozilla/5.0" } }
+            );
+            if (tikwmRes.ok) {
+              const tikwm = await tikwmRes.json() as { code: number; data?: { play_count?: number; digg_count?: number; comment_count?: number; share_count?: number; collect_count?: number } };
+              if (tikwm.code === 0 && tikwm.data) {
+                const d = tikwm.data;
+                stats = {
+                  views: d.play_count ?? 0,
+                  likes: d.digg_count ?? 0,
+                  comments: d.comment_count ?? 0,
+                  shares: d.share_count ?? 0,
+                  saves: d.collect_count ?? 0,
+                };
+              }
+            }
+          }
+        }
+      }
+
+      if (!stats) continue;
+
+      const engagementRate =
+        stats.views > 0
+          ? ((stats.likes + stats.comments + stats.shares + stats.saves) / stats.views) * 100
+          : 0;
+
+      await prisma.postMetrics.upsert({
+        where: { postId_checkpointHours: { postId: post.id, checkpointHours: LIVE_CHECKPOINT } },
+        create: {
+          postId: post.id,
+          checkpointHours: LIVE_CHECKPOINT,
+          views: stats.views,
+          likes: stats.likes,
+          comments: stats.comments,
+          shares: stats.shares,
+          saves: stats.saves,
+          engagementRate,
+          recordedAt: new Date(),
+        },
+        update: {
+          views: stats.views,
+          likes: stats.likes,
+          comments: stats.comments,
+          shares: stats.shares,
+          saves: stats.saves,
+          engagementRate,
+          recordedAt: new Date(),
+        },
+      });
+
+      updated++;
+    } catch {
+      errors++;
+    }
+  }
+
+  return { updated, errors };
+}
+
 export async function collectAllDueMetrics(): Promise<void> {
   const publishedPosts = await prisma.post.findMany({
     where: { status: "PUBLISHED", platformPostId: { not: null } },
