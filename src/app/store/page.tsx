@@ -2,6 +2,16 @@
 import { useEffect, useState } from "react";
 import { PRODUCT_CATEGORIES } from "@/lib/constants";
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  "Screens":           "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&auto=format&fit=crop&q=75",
+  "Batteries":         "https://images.unsplash.com/photo-1535303311164-664fc9ec6532?w=400&auto=format&fit=crop&q=75",
+  "Charging":          "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400&auto=format&fit=crop&q=75",
+  "Cases & Covers":    "https://images.unsplash.com/photo-1615655406736-b37887a35764?w=400&auto=format&fit=crop&q=75",
+  "Screen Protectors": "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&auto=format&fit=crop&q=75",
+  "Audio":             "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&auto=format&fit=crop&q=75",
+  "Tools":             "https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=400&auto=format&fit=crop&q=75",
+};
+
 interface Product { id: string; sku: string; name: string; description: string | null; category: string; compatibleWith: string | null; price: number; stockQty: number; }
 interface CartItem { product: Product; qty: number; }
 
@@ -48,12 +58,27 @@ export default function StorePage() {
   }
 
   return (
+    <div>
+      {/* Store hero */}
+      <div className="relative overflow-hidden h-40 md:h-52 border-b border-gray-700/50">
+        <img
+          src="https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=1400&auto=format&fit=crop&q=60"
+          alt="Mobile accessories"
+          className="w-full h-full object-cover opacity-30"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-gray-950/60 to-gray-950/90 flex items-center px-6">
+          <div className="max-w-screen-xl mx-auto w-full flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black text-white">Shop</h1>
+              <p className="text-gray-400 text-sm mt-1">Accessories, cases, chargers & more</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <div className="max-w-screen-xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Shop</h1>
-          <p className="text-gray-500 text-sm mt-1">Accessories, cases, chargers & more</p>
-        </div>
+        <div />
         <button onClick={() => setShowCart(true)} className="relative btn-secondary">
           🛒 Cart
           {cartCount > 0 && <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">{cartCount}</span>}
@@ -77,8 +102,22 @@ export default function StorePage() {
        products.length === 0 ? <div className="text-center py-20 text-gray-500">No products found</div> : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {products.map(p => (
-            <div key={p.id} className="card overflow-hidden hover:border-primary/30 transition-colors group">
-              <div className="h-40 bg-gray-900 flex items-center justify-center text-5xl">📦</div>
+            <div key={p.id} className="card-glow overflow-hidden group">
+              <div className="h-40 overflow-hidden relative bg-gray-900">
+                {CATEGORY_IMAGES[p.category] ? (
+                  <img
+                    src={CATEGORY_IMAGES[p.category]}
+                    alt={p.category}
+                    className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transform transition-all duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-5xl">📦</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent" />
+                <span className="absolute bottom-2 left-2 text-[10px] font-medium bg-primary/20 border border-primary/30 text-primary px-2 py-0.5 rounded-full">
+                  {p.category}
+                </span>
+              </div>
               <div className="p-4">
                 <p className="text-[10px] font-mono text-gray-600 mb-1">{p.sku}</p>
                 <h3 className="text-white font-medium text-sm leading-snug mb-1">{p.name}</h3>
@@ -157,6 +196,7 @@ export default function StorePage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -10,20 +10,24 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#2563EB",
-          dark: "#1D4ED8",
-          light: "#3B82F6",
+          DEFAULT: "#7C3AED",
+          dark: "#6D28D9",
+          light: "#8B5CF6",
+        },
+        accent: {
+          DEFAULT: "#06B6D4",
+          dark: "#0891B2",
         },
         gray: {
-          950: "#0A0A0F",
-          900: "#111118",
-          800: "#1A1A24",
-          700: "#252533",
-          600: "#383850",
-          500: "#6B6B85",
-          400: "#9898B0",
-          200: "#CCCCDD",
-          50:  "#F5F5FA",
+          950: "#07070F",
+          900: "#0E0E1A",
+          800: "#161624",
+          700: "#1F1F33",
+          600: "#2E2E4A",
+          500: "#5C5C7A",
+          400: "#8888A8",
+          200: "#C4C4DA",
+          50:  "#F2F2FA",
         },
       },
       fontFamily: {
