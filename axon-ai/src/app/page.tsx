@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+
 
 const agents = [
   {
@@ -12,7 +12,7 @@ const agents = [
     ethnicity: "Indian",
     style: "Smart — blazer, glasses",
     bio: "Betsy never takes a day off. She organises your calendar, handles your emails and keeps every task on track — around the clock. When you decide to switch off, Betsy doesn't.",
-    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Betsy-admin&skinColor=d78774&backgroundColor=0f0f0f&radius=12&accessories=prescription01&clothing=blazer",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Betsy-admin&skinColor=d78774&backgroundColor=0a0a0a",
     color: "from-green-500/20",
   },
   {
@@ -23,7 +23,7 @@ const agents = [
     ethnicity: "Black British",
     style: "Casual — streetwear, confident",
     bio: "Maya lives on social. She creates content for every platform, schedules it at the perfect time, responds to your audience and tracks what's working — all without being asked twice.",
-    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Maya-social&skinColor=4a3728&backgroundColor=0f0f0f&radius=12&clothing=hoodie",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Maya-social&skinColor=4a3728&backgroundColor=0a0a0a",
     color: "from-green-500/20",
   },
   {
@@ -34,7 +34,7 @@ const agents = [
     ethnicity: "Mixed heritage",
     style: "Smart casual — glasses, friendly",
     bio: "Alex is endlessly patient. He answers every customer query instantly, 24 hours a day. He never gets frustrated, never makes a customer feel like a burden, and always knows what to say.",
-    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Alex-support&skinColor=c8a882&backgroundColor=0f0f0f&radius=12&accessories=prescription02&clothing=shirt",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Alex-support&skinColor=c8a882&backgroundColor=0a0a0a",
     color: "from-green-500/20",
   },
   {
@@ -45,7 +45,7 @@ const agents = [
     ethnicity: "Black",
     style: "Sharp — suit, no glasses",
     bio: "Marcus never lets a lead go cold. He qualifies every inbound enquiry, follows up without fail, keeps your CRM spotless and books meetings straight into your calendar. He doesn't miss.",
-    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Marcus-sales&skinColor=3d2b1f&backgroundColor=0f0f0f&radius=12&clothing=blazerShirt",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Marcus-sales&skinColor=3d2b1f&backgroundColor=0a0a0a",
     color: "from-green-500/20",
   },
   {
@@ -56,7 +56,7 @@ const agents = [
     ethnicity: "East Asian",
     style: "Professional — glasses, smart",
     bio: "Claire keeps your numbers clean. She sends invoices, chases late payments, tracks every expense and delivers clear financial reports — so you always know where your money is.",
-    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Claire-finance&skinColor=f0c8a0&backgroundColor=0f0f0f&radius=12&accessories=prescription01&clothing=blazerSweater",
+    avatar: "https://api.dicebear.com/9.x/pixel-art/svg?seed=Claire-finance&skinColor=f0c8a0&backgroundColor=0a0a0a",
     color: "from-green-500/20",
   },
 ];
@@ -111,7 +111,7 @@ export default function HomePage() {
             {agents.map(a => (
               <div key={a.slug} className="relative group">
                 <div className="w-14 h-14 border-2 border-green-500/30 group-hover:border-green-500 transition-all overflow-hidden" style={{ background: "#0A0A0A", imageRendering: "pixelated" }}>
-                  <Image src={a.avatar} alt={a.character} width={56} height={56} style={{ imageRendering: "pixelated" }} unoptimized />
+                  <img src={a.avatar} alt={a.character} width={56} height={56} style={{ imageRendering: "pixelated" }} />
                 </div>
                 <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-green-500 text-xs font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{a.character}</div>
               </div>
@@ -150,7 +150,7 @@ export default function HomePage() {
                 <div className="relative h-48 flex items-center justify-center border-b border-green-500/10" style={{ background: "#050505" }}>
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "radial-gradient(circle at center, rgba(34,197,94,0.08) 0%, transparent 70%)" }} />
                   <div className="w-32 h-32" style={{ imageRendering: "pixelated" }}>
-                    <Image src={agent.avatar} alt={agent.character} width={128} height={128} style={{ imageRendering: "pixelated" }} unoptimized />
+                    <img src={agent.avatar} alt={agent.character} width={128} height={128} style={{ imageRendering: "pixelated" }} />
                   </div>
                   <div className="absolute top-3 right-3 bg-green-500 text-black text-xs font-black px-2 py-1 uppercase tracking-widest">Available</div>
                 </div>
@@ -252,7 +252,7 @@ export default function HomePage() {
               <div className="flex justify-center gap-2 mb-6">
                 {agents.map(a => (
                   <div key={a.slug} className="w-10 h-10" style={{ imageRendering: "pixelated" }}>
-                    <Image src={a.avatar} alt={a.character} width={40} height={40} style={{ imageRendering: "pixelated" }} unoptimized />
+                    <img src={a.avatar} alt={a.character} width={40} height={40} style={{ imageRendering: "pixelated" }} />
                   </div>
                 ))}
               </div>
@@ -288,7 +288,7 @@ export default function HomePage() {
                     <label key={agent.slug} className={`flex items-center gap-3 p-3 border cursor-pointer transition-all ${formData.agents.includes(agent.character) ? "border-green-500 text-green-500" : "border-green-500/20 text-gray-400 hover:border-green-500/50"}`} style={formData.agents.includes(agent.character) ? { background: "rgba(34,197,94,0.1)" } : {}}>
                       <input type="checkbox" className="sr-only" checked={formData.agents.includes(agent.character)} onChange={() => toggleAgent(agent.character)} />
                       <div className="w-8 h-8 flex-shrink-0" style={{ imageRendering: "pixelated" }}>
-                        <Image src={agent.avatar} alt={agent.character} width={32} height={32} style={{ imageRendering: "pixelated" }} unoptimized />
+                        <img src={agent.avatar} alt={agent.character} width={32} height={32} style={{ imageRendering: "pixelated" }} />
                       </div>
                       <div>
                         <div className="text-sm font-bold">{agent.character}</div>
@@ -328,7 +328,7 @@ export default function HomePage() {
               <div className="flex gap-2 mt-4">
                 {agents.map(a => (
                   <div key={a.slug} className="w-8 h-8" style={{ imageRendering: "pixelated" }}>
-                    <Image src={a.avatar} alt={a.character} width={32} height={32} style={{ imageRendering: "pixelated" }} unoptimized />
+                    <img src={a.avatar} alt={a.character} width={32} height={32} style={{ imageRendering: "pixelated" }} />
                   </div>
                 ))}
               </div>

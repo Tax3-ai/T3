@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 
 const agentData: Record<string, {
@@ -19,10 +18,10 @@ const agentData: Record<string, {
   admin: {
     name: 'Admin Agent',
     character: 'Betsy',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Betsy-admin&skinColor=d78774&backgroundColor=0f0f0f&radius=12&accessories=prescription01&clothing=blazer',
+    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Betsy-admin&skinColor=d78774&backgroundColor=0a0a0a',
     role: 'Operations & Organisation',
     tagline: 'The ultimate executive assistant. Never overwhelmed. Always on.',
-    bio: 'Betsy never takes a day off. She organises your calendar, handles your emails and keeps every task on track — around the clock. When you decide to switch off, Betsy doesn\'t.',
+    bio: "Betsy never takes a day off. She organises your calendar, handles your emails and keeps every task on track — around the clock. When you decide to switch off, Betsy doesn't.",
     description: 'Your Admin Agent handles the operational backbone of your business — from calendar management and email triage to document creation and data entry. It works silently in the background, ensuring nothing falls through the cracks, while your human team focuses on high-value work.',
     capabilities: [
       { title: 'Calendar & Scheduling', detail: 'Manages meetings, sends invites, resolves conflicts, and sets reminders across all time zones.' },
@@ -40,10 +39,10 @@ const agentData: Record<string, {
   'social-media': {
     name: 'Social Media Agent',
     character: 'Maya',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Maya-social&skinColor=4a3728&backgroundColor=0f0f0f&radius=12&clothing=hoodie',
+    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Maya-social&skinColor=4a3728&backgroundColor=0a0a0a',
     role: 'Brand & Content',
     tagline: 'Always posting. Always engaging. Never burning out.',
-    bio: 'Maya lives on social. She creates content for every platform, schedules it at the perfect time, responds to your audience and tracks what\'s working — all without being asked twice.',
+    bio: "Maya lives on social. She creates content for every platform, schedules it at the perfect time, responds to your audience and tracks what's working — all without being asked twice.",
     description: "Your Social Media Agent is a full-time content machine — creating platform-specific posts, scheduling them at optimal times, engaging with your audience, and reporting on what's working. It knows your brand voice and never goes off-message.",
     capabilities: [
       { title: 'Content Creation', detail: 'Writes captions, threads, carousels, and scripts tailored to each platform and your tone of voice.' },
@@ -61,7 +60,7 @@ const agentData: Record<string, {
   'customer-support': {
     name: 'Customer Support Agent',
     character: 'Alex',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Alex-support&skinColor=c8a882&backgroundColor=0f0f0f&radius=12&accessories=prescription02&clothing=shirt',
+    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Alex-support&skinColor=c8a882&backgroundColor=0a0a0a',
     role: 'Client Experience',
     tagline: 'Instant answers. Happy customers. Zero wait time.',
     bio: 'Alex is endlessly patient. He answers every customer query instantly, 24 hours a day. He never gets frustrated, never makes a customer feel like a burden, and always knows what to say.',
@@ -82,10 +81,10 @@ const agentData: Record<string, {
   sales: {
     name: 'Sales Agent',
     character: 'Marcus',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Marcus-sales&skinColor=3d2b1f&backgroundColor=0f0f0f&radius=12&clothing=blazerShirt',
+    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Marcus-sales&skinColor=3d2b1f&backgroundColor=0a0a0a',
     role: 'Revenue & Growth',
     tagline: 'Leads qualified. Pipelines full. Revenue growing.',
-    bio: 'Marcus never lets a lead go cold. He qualifies every inbound enquiry, follows up without fail, keeps your CRM spotless and books meetings straight into your calendar. He doesn\'t miss.',
+    bio: "Marcus never lets a lead go cold. He qualifies every inbound enquiry, follows up without fail, keeps your CRM spotless and books meetings straight into your calendar. He doesn't miss.",
     description: 'Your Sales Agent works your pipeline around the clock — qualifying inbound leads, sending personalised follow-up sequences, updating your CRM, and booking meetings. It never forgets a follow-up and never lets a warm lead go cold.',
     capabilities: [
       { title: 'Lead Qualification', detail: 'Scores and qualifies leads based on your ICP criteria before they reach your sales team.' },
@@ -103,7 +102,7 @@ const agentData: Record<string, {
   finance: {
     name: 'Finance Agent',
     character: 'Claire',
-    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Claire-finance&skinColor=f0c8a0&backgroundColor=0f0f0f&radius=12&accessories=prescription01&clothing=blazerSweater',
+    avatar: 'https://api.dicebear.com/9.x/pixel-art/svg?seed=Claire-finance&skinColor=f0c8a0&backgroundColor=0a0a0a',
     role: 'Accounts & Reporting',
     tagline: 'Numbers handled. Cash flow clear. Decisions informed.',
     bio: 'Claire keeps your numbers clean. She sends invoices, chases late payments, tracks every expense and delivers clear financial reports — so you always know where your money is.',
@@ -141,18 +140,11 @@ export default function AgentPage({ params }: { params: { slug: string } }) {
             ← Back to All Agents
           </Link>
 
-          {/* Character profile */}
           <div className="flex items-start gap-8 mb-10">
             <div className="shrink-0">
-              <div className="border-2 border-green-500/30 p-1" style={{ background: '#0A0A0A', imageRendering: 'pixelated' }}>
-                <Image
-                  src={agent.avatar}
-                  alt={agent.character}
-                  width={128}
-                  height={128}
-                  unoptimized
-                  style={{ imageRendering: 'pixelated' }}
-                />
+              <div className="border-2 border-green-500/30 p-1" style={{ background: '#0A0A0A' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={agent.avatar} alt={agent.character} width={128} height={128} style={{ imageRendering: 'pixelated' }} />
               </div>
               <div className="text-center mt-2">
                 <div className="text-white font-bold text-sm">{agent.character}</div>
@@ -179,7 +171,6 @@ export default function AgentPage({ params }: { params: { slug: string } }) {
             </Link>
           </div>
 
-          {/* Metrics */}
           <div className="grid grid-cols-3 gap-8 mt-16 max-w-md">
             {agent.metrics.map(m => (
               <div key={m.label} className="text-center border border-white/5 p-4" style={{ background: '#0A0A0A' }}>
@@ -195,7 +186,6 @@ export default function AgentPage({ params }: { params: { slug: string } }) {
       <section className="py-24 px-6 max-w-5xl mx-auto">
         <div className="text-green-500 font-mono text-sm tracking-widest mb-4">// CAPABILITIES</div>
         <h2 className="text-3xl font-black text-white mb-12">What {agent.character} Does</h2>
-
         <div className="grid md:grid-cols-2 gap-6">
           {agent.capabilities.map((cap) => (
             <div key={cap.title} className="border border-white/5 p-6 hover:border-green-500/30 transition-all" style={{ background: '#0A0A0A' }}>
@@ -255,14 +245,8 @@ export default function AgentPage({ params }: { params: { slug: string } }) {
         <div className="max-w-2xl mx-auto">
           <div className="mb-8 flex justify-center">
             <div className="border-2 border-green-500/40 p-1" style={{ background: '#0A0A0A' }}>
-              <Image
-                src={agent.avatar}
-                alt={agent.character}
-                width={96}
-                height={96}
-                unoptimized
-                style={{ imageRendering: 'pixelated' }}
-              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={agent.avatar} alt={agent.character} width={96} height={96} style={{ imageRendering: 'pixelated' }} />
             </div>
           </div>
           <div className="text-green-500 font-mono text-sm tracking-widest mb-4">// READY?</div>
