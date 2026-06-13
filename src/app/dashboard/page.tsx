@@ -11,6 +11,10 @@ interface Job {
   customer: { name: string; phone: string };
 }
 
+// Demo stats shown when the DB is empty/unavailable and demo jobs are displayed
+const DEMO_STATS = { total: 47, active: 12, ready: 3, newToday: 2, revenue: 8420 };
+const DEMO_JOB_ID_PREFIX = "demo-";
+
 export default function DashboardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,14 +29,23 @@ export default function DashboardPage() {
     fetch(`/api/jobs?${p}`).then(r => r.json()).then(d => { setJobs(d); setLoading(false); });
   }, [statusFilter, search]);
 
+  const isDemo = jobs.length > 0 && jobs[0]?.id?.startsWith(DEMO_JOB_ID_PREFIX);
   const today = new Date().toDateString();
-  const stats = [
-    { label: "Total Jobs",        value: jobs.length,                                                      color: "text-white" },
-    { label: "Active",            value: jobs.filter(j => !["COLLECTED","CANCELLED"].includes(j.status)).length, color: "text-blue-400" },
-    { label: "Ready to Collect",  value: jobs.filter(j => j.status === "READY").length,                   color: "text-green-400" },
-    { label: "New Today",         value: jobs.filter(j => new Date(j.createdAt).toDateString() === today).length, color: "text-yellow-400" },
-    { label: "Revenue (collected)", value: `£${jobs.filter(j => j.status === "COLLECTED").reduce((s,j) => s+(j.quotedPrice||0),0).toFixed(0)}`, color: "text-primary" },
-  ];
+  const stats = isDemo
+    ? [
+        { label: "Total Jobs",          value: DEMO_STATS.total,              color: "text-white" },
+        { label: "Active",              value: DEMO_STATS.active,             color: "text-blue-400" },
+        { label: "Ready to Collect",    value: DEMO_STATS.ready,              color: "text-green-400" },
+        { label: "New Today",           value: DEMO_STATS.newToday,           color: "text-yellow-400" },
+        { label: "Revenue (collected)", value: `£${DEMO_STATS.revenue.toLocaleString()}`, color: "text-primary" },
+      ]
+    : [
+        { label: "Total Jobs",          value: jobs.length,                                                                                         color: "text-white" },
+        { label: "Active",              value: jobs.filter(j => !["COLLECTED","CANCELLED"].includes(j.status)).length,                              color: "text-blue-400" },
+        { label: "Ready to Collect",    value: jobs.filter(j => j.status === "READY").length,                                                       color: "text-green-400" },
+        { label: "New Today",           value: jobs.filter(j => new Date(j.createdAt).toDateString() === today).length,                             color: "text-yellow-400" },
+        { label: "Revenue (collected)", value: `£${jobs.filter(j => j.status === "COLLECTED").reduce((s,j) => s+(j.quotedPrice||0),0).toFixed(0)}`, color: "text-primary" },
+      ];
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8">
