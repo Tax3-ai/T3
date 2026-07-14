@@ -194,6 +194,81 @@ export interface StrategyReport {
   createdAt: Date;
 }
 
+export type EmailCampaignType = "CAMPAIGN" | "FLOW";
+export type EmailCampaignGoal =
+  | "MONETIZATION"
+  | "RETENTION"
+  | "WINBACK"
+  | "WELCOME"
+  | "VIP"
+  | "REPLENISHMENT"
+  | "LAUNCH";
+export type EmailCampaignStatus = "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "SCHEDULED" | "SENT" | "REJECTED";
+
+export interface EmailCampaign {
+  id: string;
+  type: EmailCampaignType;
+  goal: EmailCampaignGoal;
+  segment: string;
+  name: string;
+  subjectLines: string[];
+  preheader: string;
+  body: string;
+  cta: string;
+  flowTrigger?: string | null;
+  flowStepOrder?: number | null;
+  status: EmailCampaignStatus;
+  approvalStatus: ApprovalStatus;
+  approvalNotes?: string | null;
+  aiReasoning?: string | null;
+  predictedImpact?: string | null;
+  estimatedRevenue?: number | null;
+  scheduledAt?: Date | null;
+  sentAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ListSegment {
+  name: string;
+  count: number;
+  revenue: number;
+  description: string;
+}
+
+export interface RetentionFlowIdea {
+  flow: string;
+  trigger: string;
+  goal: string;
+}
+
+export interface EmailStrategyReport {
+  id: string;
+  listSize: number;
+  repeatPurchaseRate: number;
+  avgOrderValue: number;
+  estimatedLtv: number;
+  segments: ListSegment[];
+  monetizationIdeas: string[];
+  retentionPlan: RetentionFlowIdea[];
+  recommendations: string[];
+  createdAt: Date;
+}
+
+export interface ListAnalyticsSummary {
+  listSize: number;
+  totalRevenue: number;
+  totalOrders: number;
+  avgOrderValue: number;
+  repeatPurchaseRate: number;
+  estimatedLtv: number;
+  segments: ListSegment[];
+  topCustomersBySegment: Record<
+    string,
+    Array<{ name: string | null; orderCount: number; totalSpent: number; daysSinceLastOrder: number }>
+  >;
+}
+
 export interface DashboardStats {
   totalPosts: number;
   pendingApproval: number;

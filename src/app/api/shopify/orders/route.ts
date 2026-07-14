@@ -23,6 +23,10 @@ async function upsertPage(orders: any[]): Promise<number> {
   // Try fast path: bulk insert new records, skip duplicates
   const creates = orders.map((order: any) => {
     const { utmSource, utmMedium, utmCampaign, utmContent } = parseUtm(order.landing_site);
+    const customer = order.customer;
+    const customerName = customer
+      ? [customer.first_name, customer.last_name].filter(Boolean).join(" ") || null
+      : null;
     return {
       shopifyId: String(order.id),
       orderNumber: String(order.order_number),
@@ -31,6 +35,9 @@ async function upsertPage(orders: any[]): Promise<number> {
       utmSource, utmMedium, utmCampaign, utmContent,
       referringSite: order.referring_site ?? null,
       landingPage: order.landing_site ?? null,
+      customerId: customer?.id ? String(customer.id) : null,
+      customerEmail: (customer?.email ?? order.email ?? null)?.toLowerCase() ?? null,
+      customerName,
       createdAt: new Date(order.created_at),
       processedAt: order.processed_at ? new Date(order.processed_at) : null,
     };
@@ -64,6 +71,9 @@ async function upsertPage(orders: any[]): Promise<number> {
             utmContent: c.utmContent,
             referringSite: c.referringSite,
             landingPage: c.landingPage,
+            customerId: c.customerId,
+            customerEmail: c.customerEmail,
+            customerName: c.customerName,
             processedAt: c.processedAt,
           },
         })
@@ -82,7 +92,7 @@ export async function POST(req: NextRequest) {
     const sinceDate = allTime ? "2017-01-01T00:00:00Z" : "2026-01-01T00:00:00Z";
     const { accessToken, storeUrl } = await getShopifyCredentials();
     const dateParam = sinceDate ? `&created_at_min=${sinceDate}` : "";
-    const fields = "id,order_number,total_price,currency,created_at,processed_at,referring_site,landing_site";
+    const fields = "id,order_number,total_price,currency,created_at,processed_at,referring_site,landing_site,email,customer";
 
     let pageUrl: string | null = `https://${storeUrl}/admin/api/2025-01/orders.json?status=any&limit=250${dateParam}&fields=${fields}`;
     let synced = 0;

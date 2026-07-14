@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: "Calendar", href: "/calendar", icon: "📅" },
   { label: "Trends", href: "/trends", icon: "📈" },
   { label: "Reports", href: "/reports", icon: "📊" },
+  { label: "Email Agent", href: "/email", icon: "✉️" },
   { label: "Brand Bible", href: "/brand-bible", icon: "📖" },
   { label: "Shopify", href: "/shopify", icon: "🛍️" },
 ];

@@ -166,8 +166,13 @@ model ShopifyOrder {
   utmContent    String?
   referringSite String?
   landingPage   String?
+  customerId    String?
+  customerEmail String?
+  customerName  String?
   createdAt     DateTime  @default(now())
   processedAt   DateTime?
+
+  @@index([customerEmail])
 }
 
 model ContentSuggestion {
@@ -183,4 +188,41 @@ model ContentSuggestion {
   predictedScore  Float?
   status          String   @default("PENDING")
   createdAt       DateTime @default(now())
+}
+
+model EmailCampaign {
+  id               String    @id @default(cuid())
+  type             String    // CAMPAIGN | FLOW
+  goal             String    // MONETIZATION | RETENTION | WINBACK | WELCOME | VIP | REPLENISHMENT | LAUNCH
+  segment          String    // human-readable target segment, e.g. "Lapsed 90d+", "VIP", "All subscribers"
+  name             String
+  subjectLines     String    // JSON array of subject line variants
+  preheader        String
+  body             String    // draft email copy, merge-tag style placeholders e.g. {{first_name}}
+  cta              String
+  flowTrigger      String?   // for FLOW type: what triggers this email, e.g. "3 days after signup"
+  flowStepOrder    Int?      // for FLOW type: position within its sequence
+  status           String    @default("DRAFT") // DRAFT | PENDING_APPROVAL | APPROVED | SCHEDULED | SENT | REJECTED
+  approvalStatus   String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  approvalNotes    String?
+  aiReasoning      String?
+  predictedImpact  String?
+  estimatedRevenue Float?
+  scheduledAt      DateTime?
+  sentAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model EmailStrategyReport {
+  id                  String   @id @default(cuid())
+  listSize            Int      @default(0)
+  repeatPurchaseRate  Float    @default(0)
+  avgOrderValue       Float    @default(0)
+  estimatedLtv        Float    @default(0)
+  segments            String   // JSON array of { name, count, revenue, description }
+  monetizationIdeas   String   // JSON array of strings
+  retentionPlan       String   // JSON array of { flow, trigger, goal }
+  recommendations     String   // JSON array of strings
+  createdAt           DateTime @default(now())
 }
